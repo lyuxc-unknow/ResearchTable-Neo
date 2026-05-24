@@ -1,14 +1,8 @@
 {
-  "forge_marker": 1,
-  "defaults": {
-    "model": "researchtable:table"
-  },
   "variants": {
-    "facing": {
-      "north": { "y": 0   },
-      "south": { "y": 180 },
-      "west":  { "y": 270 },
-      "east":  { "y": 90  }
-    }
+    "facing=north": { "model": "researchtable:block/table" },
+    "facing=south": { "model": "researchtable:block/table", "y": 180 },
+    "facing=west":  { "model": "researchtable:block/table", "y": 270 },
+    "facing=east":  { "model": "researchtable:block/table", "y": 90  }
   }
 }

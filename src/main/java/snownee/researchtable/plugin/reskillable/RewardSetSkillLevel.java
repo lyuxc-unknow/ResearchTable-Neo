@@ -1,5 +1,7 @@
 package snownee.researchtable.plugin.reskillable;
 
+
+/* === DISABLED DURING NEOFORGE 1.21.1 MIGRATION ===
 import codersafterdark.reskillable.api.data.PlayerData;
 import codersafterdark.reskillable.api.data.PlayerDataHandler;
 import codersafterdark.reskillable.api.data.PlayerSkillInfo;
@@ -34,3 +36,5 @@ public class RewardSetSkillLevel extends RewardSkillLevelUp {
 		}
 	}
 }
+
+=== END DISABLED === */

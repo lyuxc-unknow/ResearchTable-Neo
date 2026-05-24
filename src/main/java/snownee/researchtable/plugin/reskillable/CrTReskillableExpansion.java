@@ -1,5 +1,7 @@
 package snownee.researchtable.plugin.reskillable;
 
+
+/* === DISABLED DURING NEOFORGE 1.21.1 MIGRATION ===
 import crafttweaker.annotations.ModOnly;
 import crafttweaker.annotations.ZenRegister;
 import snownee.researchtable.plugin.crafttweaker.ResearchBuilder;
@@ -40,3 +42,5 @@ public class CrTReskillableExpansion {
 		return builder;
 	}
 }
+
+=== END DISABLED === */

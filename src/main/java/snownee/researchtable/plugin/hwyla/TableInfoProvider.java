@@ -1,5 +1,7 @@
 package snownee.researchtable.plugin.hwyla;
 
+
+/* === DISABLED DURING NEOFORGE 1.21.1 MIGRATION ===
 import java.util.List;
 
 import mcp.mobius.waila.api.IWailaConfigHandler;
@@ -57,3 +59,5 @@ public class TableInfoProvider implements IWailaDataProvider {
 		return tag;
 	}
 }
+
+=== END DISABLED === */

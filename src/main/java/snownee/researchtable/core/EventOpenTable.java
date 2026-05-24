@@ -1,15 +1,14 @@
 package snownee.researchtable.core;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.fml.common.eventhandler.Cancelable;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.bus.api.ICancellableEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import snownee.researchtable.block.TileTable;
 
-@Cancelable
-public class EventOpenTable extends PlayerEvent {
+public class EventOpenTable extends PlayerEvent implements ICancellableEvent {
 	private final TileTable table;
 
-	public EventOpenTable(EntityPlayer player, TileTable table) {
+	public EventOpenTable(Player player, TileTable table) {
 		super(player);
 		this.table = table;
 	}
@@ -17,5 +16,4 @@ public class EventOpenTable extends PlayerEvent {
 	public TileTable getTable() {
 		return table;
 	}
-
 }

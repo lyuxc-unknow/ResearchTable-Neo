@@ -1,6 +1,6 @@
 package snownee.researchtable.core;
 
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 public class ResearchCategory {
 	public final ItemStack icon;

@@ -17,36 +17,36 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
 import it.unimi.dsi.fastutil.objects.Object2IntMaps;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.world.WorldServer;
-import net.minecraft.world.storage.ThreadedFileIOBase;
-import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.common.util.FakePlayer;
-import net.minecraftforge.event.world.WorldEvent;
-import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.Tag;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.common.util.FakePlayer;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.core.team.TeamHelper;
-import snownee.researchtable.network.NetworkChannel;
 import snownee.researchtable.network.PacketSyncClient;
 
 @EventBusSubscriber(modid = ResearchTable.MODID)
 public class DataStorage {
 	private static DataStorage INSTANCE;
-	private final WorldServer world;
+	private final ServerLevel world;
 	private static final Map<UUID, Object2IntMap<String>> records = new HashMap<>();
 	private static final Map<String, Object2IntMap<String>> players = new HashMap<>();
 	private static boolean changed = false;
 	public static Object2IntMap<String> clientData;
 
-	public DataStorage(WorldServer world) {
+	public DataStorage(ServerLevel world) {
 		this.world = world;
 		load();
 	}
@@ -57,18 +57,18 @@ public class DataStorage {
 		changed = false;
 		clientData = null;
 
-		File folder = new File(world.getSaveHandler().getWorldDirectory(), "data/");
+		File folder = new File(world.getServer().getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toFile(), "data/");
 		File file = new File(folder, ResearchTable.MODID + ".dat");
-		NBTTagCompound data = null;
+		CompoundTag data = null;
 
 		if (file.exists() && file.isFile()) {
 			try (InputStream stream = new FileInputStream(file)) {
-				data = CompressedStreamTools.readCompressed(stream);
+				data = NbtIo.readCompressed(stream, NbtAccounter.unlimitedHeap());
 			} catch (Exception ex1) {
 				try {
-					data = CompressedStreamTools.read(file);
+					data = NbtIo.read(file.toPath());
 				} catch (Exception ex2) {
-					ex2.printStackTrace();
+					ex2.fillInStackTrace();
 				}
 			}
 		}
@@ -76,11 +76,11 @@ public class DataStorage {
 			return;
 		}
 
-		int format = data.getInteger("__v");
+		int format = data.getInt("__v");
 		if (format == 0) {
-			for (String player : data.getKeySet()) {
-				if (data.hasKey(player, Constants.NBT.TAG_COMPOUND)) {
-					NBTTagCompound compound = data.getCompoundTag(player);
+			for (String player : data.getAllKeys()) {
+				if (data.contains(player, Tag.TAG_COMPOUND)) {
+					CompoundTag compound = data.getCompound(player);
 					Object2IntMap<String> researches = readPlayerData(compound);
 					if (!researches.isEmpty()) {
 						players.put(player, researches);
@@ -88,10 +88,10 @@ public class DataStorage {
 				}
 			}
 		} else if (format == 1) {
-			NBTTagCompound playersData = data.getCompoundTag("oldRecords");
-			for (String player : playersData.getKeySet()) {
-				if (data.hasKey(player, Constants.NBT.TAG_COMPOUND)) {
-					NBTTagCompound compound = playersData.getCompoundTag(player);
+			CompoundTag playersData = data.getCompound("oldRecords");
+			for (String player : playersData.getAllKeys()) {
+				if (playersData.contains(player, Tag.TAG_COMPOUND)) {
+					CompoundTag compound = playersData.getCompound(player);
 					Object2IntMap<String> researches = readPlayerData(compound);
 					if (!researches.isEmpty()) {
 						players.put(player, researches);
@@ -99,11 +99,11 @@ public class DataStorage {
 				}
 			}
 
-			NBTTagList recordsData = data.getTagList("records", Constants.NBT.TAG_COMPOUND);
-			for (NBTBase raw : recordsData) {
-				NBTTagCompound recordData = (NBTTagCompound) raw;
-				UUID k = recordData.getUniqueId("k");
-				Object2IntMap<String> v = readPlayerData(recordData.getCompoundTag("v"));
+			ListTag recordsData = data.getList("records", Tag.TAG_COMPOUND);
+			for (Tag raw : recordsData) {
+				CompoundTag recordData = (CompoundTag) raw;
+				UUID k = recordData.getUUID("k");
+				Object2IntMap<String> v = readPlayerData(recordData.getCompound("v"));
 				if (!v.isEmpty()) {
 					records.put(k, v);
 				}
@@ -117,59 +117,56 @@ public class DataStorage {
 		if (!changed) {
 			return;
 		}
-		NBTTagCompound data = new NBTTagCompound();
-		data.setInteger("__v", 1);
+		CompoundTag data = new CompoundTag();
+		data.putInt("__v", 1);
 
-		NBTTagList playersDataList = new NBTTagList();
+		ListTag playersDataList = new ListTag();
 		players.forEach((player, researches) -> {
 			if (!researches.isEmpty()) {
-				NBTTagCompound playersData = new NBTTagCompound();
-				playersData.setTag(player, writePlayerData(researches));
-				playersDataList.appendTag(playersData);
+				CompoundTag playersData = new CompoundTag();
+				playersData.put(player, writePlayerData(researches));
+				playersDataList.add(playersData);
 			}
 		});
 		if (!playersDataList.isEmpty()) {
-			data.setTag("oldRecords", playersDataList);
+			data.put("oldRecords", playersDataList);
 		}
 
-		NBTTagList recordsDataList = new NBTTagList();
+		ListTag recordsDataList = new ListTag();
 		records.forEach((k, v) -> {
 			if (!v.isEmpty()) {
-				NBTTagCompound recordsData = new NBTTagCompound();
-				recordsData.setUniqueId("k", k);
-				recordsData.setTag("v", writePlayerData(v));
-				recordsDataList.appendTag(recordsData);
+				CompoundTag recordsData = new CompoundTag();
+				recordsData.putUUID("k", k);
+				recordsData.put("v", writePlayerData(v));
+				recordsDataList.add(recordsData);
 			}
 		});
 		if (!recordsDataList.isEmpty()) {
-			data.setTag("records", recordsDataList);
+			data.put("records", recordsDataList);
 		}
 
-		File folder = new File(world.getSaveHandler().getWorldDirectory(), "data/");
+		File folder = new File(world.getServer().getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toFile(), "data/");
 		File file = new File(folder, ResearchTable.MODID + ".dat");
-		ThreadedFileIOBase.getThreadedIOInstance().queueIO(() -> {
-			try {
-				if (!file.exists()) {
-					if (!folder.exists()) {
-						folder.mkdirs();
-					}
-					file.createNewFile();
+		try {
+			if (!file.exists()) {
+				if (!folder.exists()) {
+					folder.mkdirs();
 				}
-				OutputStream stream = new FileOutputStream(file);
-				CompressedStreamTools.writeCompressed(data, stream);
-				changed = false;
-			} catch (Exception e) {
-				e.printStackTrace();
+				file.createNewFile();
 			}
-			return false;
-		});
+			try (OutputStream stream = new FileOutputStream(file)) {
+				NbtIo.writeCompressed(data, stream);
+			}
+			changed = false;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	public static boolean loaded() {
 		return INSTANCE != null;
 	}
 
-	// TODO: register event
 	public static int complete(UUID uuid, Research research) {
 		return setCount(uuid, research, count(uuid, research) + 1);
 	}
@@ -182,7 +179,7 @@ public class DataStorage {
 		if (count > 0) {
 			researches.put(research.getName(), count);
 		} else {
-			researches.remove(research.getName());
+			researches.removeInt(research.getName());
 		}
 		changed = true;
 		syncClientAllMembers(uuid);
@@ -191,7 +188,7 @@ public class DataStorage {
 
 	public static Object2IntMap<String> getRecords(UUID uuid) {
 		if (!loaded()) {
-			return Object2IntMaps.EMPTY_MAP;
+			return Object2IntMaps.emptyMap();
 		}
 		UUID owner = TeamHelper.provider.getOwner(uuid);
 		if (owner != null) {
@@ -223,26 +220,35 @@ public class DataStorage {
 	}
 
 	@SubscribeEvent
-	public static void onWorldLoaded(WorldEvent.Load event) {
-		if (event.getWorld().provider.getDimension() == 0 && !event.getWorld().isRemote) {
-			INSTANCE = new DataStorage((WorldServer) event.getWorld());
+	public static void onWorldLoaded(LevelEvent.Load event) {
+		Level level = (Level) event.getLevel();
+		if (!level.isClientSide && level instanceof ServerLevel && level.dimension() == Level.OVERWORLD) {
+			INSTANCE = new DataStorage((ServerLevel) level);
 		}
 	}
 
 	@SubscribeEvent
-	public static void onWorldSaved(WorldEvent.Save event) {
-		if (loaded() && event.getWorld() == INSTANCE.world) {
+	public static void onWorldSaved(LevelEvent.Save event) {
+		if (loaded() && event.getLevel() == INSTANCE.world) {
 			INSTANCE.save();
 		}
 	}
 
 	@SubscribeEvent
+	public static void onWorldUnloaded(LevelEvent.Unload event) {
+		if (loaded() && event.getLevel() == INSTANCE.world) {
+			INSTANCE.save();
+			INSTANCE = null;
+		}
+	}
+
+	@SubscribeEvent
 	public static void onPlayerLoggedIn(PlayerLoggedInEvent event) {
-		if (!loaded() || event.player instanceof FakePlayer) {
+		if (!loaded() || event.getEntity() instanceof FakePlayer) {
 			return;
 		}
-		String name = event.player.getName();
-		UUID uuid = event.player.getGameProfile().getId();
+		String name = event.getEntity().getName().getString();
+		UUID uuid = event.getEntity().getGameProfile().getId();
 		if (players.containsKey(name)) {
 			Object2IntMap<String> data = players.get(name);
 			players.remove(name);
@@ -270,24 +276,24 @@ public class DataStorage {
 	}
 
 	private static void syncClient(UUID uuid) {
-		EntityPlayer player = getPlayer(uuid);
+		Player player = getPlayer(uuid);
 		if (player == null) {
 			return;
 		}
-		if (player instanceof EntityPlayerMP && !(player instanceof FakePlayer)) {
+		if (player instanceof ServerPlayer sp && !(player instanceof FakePlayer)) {
 			Object2IntMap<String> data = getRecords(player.getGameProfile().getId());
 			if (!data.isEmpty()) {
-				NetworkChannel.INSTANCE.sendToPlayer(new PacketSyncClient(data), (EntityPlayerMP) player);
+				net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new PacketSyncClient(data));
 			}
 		}
 	}
 
-	public static Object2IntMap<String> readPlayerData(NBTTagCompound data) {
-		Set<String> keySet = data.getKeySet();
+	public static Object2IntMap<String> readPlayerData(CompoundTag data) {
+		Set<String> keySet = data.getAllKeys();
 		Object2IntMap<String> researches = new Object2IntOpenHashMap<>(keySet.size());
 		for (String research : keySet) {
-			if (data.hasKey(research, Constants.NBT.TAG_INT)) {
-				int count = data.getInteger(research);
+			if (data.contains(research, Tag.TAG_INT)) {
+				int count = data.getInt(research);
 				if (count > 0) {
 					researches.put(research, count);
 				}
@@ -296,22 +302,29 @@ public class DataStorage {
 		return researches;
 	}
 
-	public static NBTTagCompound writePlayerData(Object2IntMap<String> map) {
-		NBTTagCompound data = new NBTTagCompound();
-		map.forEach((research, count) -> {
-			data.setInteger(research, count);
-		});
+	public static CompoundTag writePlayerData(Object2IntMap<String> map) {
+		CompoundTag data = new CompoundTag();
+		map.forEach(data::putInt);
 		return data;
 	}
 
 	@Nullable
-	public static EntityPlayerMP getPlayer(UUID uuid) {
-		return FMLCommonHandler.instance().getMinecraftServerInstance().getPlayerList().getPlayerByUUID(uuid);
+	public static ServerPlayer getPlayer(UUID uuid) {
+		MinecraftServer server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+		if (server == null) {
+			return null;
+		}
+		return server.getPlayerList().getPlayer(uuid);
 	}
 
 	public static void onPlayerAdd(UUID uuid, UUID owner) {
-		mergeProgress(records.getOrDefault(uuid, Object2IntMaps.EMPTY_MAP), owner);
+		mergeProgress(records.getOrDefault(uuid, Object2IntMaps.emptyMap()), owner);
 		records.remove(uuid);
 		syncClientAllMembers(owner);
+	}
+
+	@SuppressWarnings("unused")
+	private static UUID dummyForUUIDUtil() {
+		return UUIDUtil.uuidFromIntArray(new int[]{0, 0, 0, 0});
 	}
 }

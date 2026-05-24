@@ -6,18 +6,16 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 
 public class Research {
-	private static final ItemStack DEFAULT_ICON = new ItemStack(Blocks.GRASS);
+	private static final ItemStack DEFAULT_ICON = new ItemStack(Blocks.GRASS_BLOCK);
 
 	private final String name;
 	private final ResearchCategory category;
@@ -54,25 +52,23 @@ public class Research {
 		return title;
 	}
 
-	@SideOnly(Side.CLIENT)
 	public String getTitle() {
-		return I18n.hasKey(title) ? I18n.format(title) : title;
+		return I18n.exists(title) ? I18n.get(title) : title;
 	}
 
 	public String getDescriptionRaw() {
 		return description;
 	}
 
-	@SideOnly(Side.CLIENT)
 	public String getDescription() {
-		return I18n.hasKey(description) ? I18n.format(description) : description;
+		return I18n.exists(description) ? I18n.get(description) : description;
 	}
 
 	public ItemStack getIcon() {
 		if (icons == null || icons.isEmpty()) {
 			return DEFAULT_ICON;
 		} else {
-			return icons.get(0);
+			return icons.getFirst();
 		}
 	}
 
@@ -80,7 +76,7 @@ public class Research {
 		return Collections.unmodifiableList(conditions);
 	}
 
-	public boolean canResearch(EntityPlayer player, NBTTagCompound data) {
+	public boolean canResearch(Player player, CompoundTag data) {
 		return criteria.stream().allMatch(c -> c.matches(player, data));
 	}
 
@@ -92,7 +88,7 @@ public class Research {
 		return Collections.unmodifiableCollection(triggers);
 	}
 
-	public void complete(World world, BlockPos pos, EntityPlayer player) {
+	public void complete(Level world, BlockPos pos, Player player) {
 		rewards.forEach(e -> e.earn(world, pos, player));
 	}
 
@@ -101,7 +97,7 @@ public class Research {
 		return "Research@" + getName();
 	}
 
-	public void start(World world, BlockPos pos, EntityPlayer player) {
+	public void start(Level world, BlockPos pos, Player player) {
 		triggers.forEach(r -> r.earn(world, pos, player));
 	}
 }

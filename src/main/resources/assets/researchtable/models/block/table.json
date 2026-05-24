@@ -1,6 +1,7 @@
 {
 	"credit": "Made with Blockbench",
 	"parent": "block/block",
+	"render_type": "minecraft:cutout_mipped",
 	"textures": {
 		"0": "researchtable:block/0",
 		"1": "researchtable:block/1",

@@ -1,12 +1,10 @@
 package snownee.researchtable.core;
 
-import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import snownee.kiwi.util.Util;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import snownee.researchtable.ResearchTable;
 
 public class CriterionResearchCount implements ICriterion {
@@ -19,14 +17,25 @@ public class CriterionResearchCount implements ICriterion {
 	}
 
 	@Override
-	public boolean matches(EntityPlayer player, NBTTagCompound data) {
+	public boolean matches(Player player, CompoundTag data) {
 		return DataStorage.count(player.getGameProfile().getId(), id) < c;
 	}
 
 	@Override
-	@SideOnly(Side.CLIENT)
-	public String getFailingText(EntityPlayer player, NBTTagCompound data) {
-		return I18n.format(ResearchTable.MODID + ".gui.maxCount", c, Util.color(0xFFFF0000) + c + TextFormatting.RESET);
+	public String getFailingText(Player player, CompoundTag data) {
+		return I18n.get(ResearchTable.MODID + ".gui.maxCount", c, ChatFormatting.RED + String.valueOf(c) + ChatFormatting.RESET);
 	}
 
+	public static final CriterionType<CriterionResearchCount> TYPE = CriterionType.register(
+			ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "research_count"),
+			(buf, x) -> {
+				buf.writeUtf(x.id);
+				buf.writeVarInt(x.c);
+			},
+			buf -> new CriterionResearchCount(buf.readUtf(), buf.readVarInt()));
+
+	@Override
+	public CriterionType<CriterionResearchCount> getType() {
+		return TYPE;
+	}
 }

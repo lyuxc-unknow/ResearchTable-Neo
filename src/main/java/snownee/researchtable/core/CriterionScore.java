@@ -1,11 +1,10 @@
 package snownee.researchtable.core;
 
-import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import snownee.kiwi.util.NBTHelper;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import snownee.researchtable.ResearchTable;
 
 public class CriterionScore implements ICriterion {
 	private final String s;
@@ -21,15 +20,28 @@ public class CriterionScore implements ICriterion {
 	}
 
 	@Override
-	public boolean matches(EntityPlayer player, NBTTagCompound data) {
-		int i = NBTHelper.of(data).getInt("score." + s, 0);
+	public boolean matches(Player player, CompoundTag data) {
+		int i = data.contains("score." + s) ? data.getInt("score." + s) : 0;
 		return i >= min && i <= max;
 	}
 
 	@Override
-	@SideOnly(Side.CLIENT)
-	public String getFailingText(EntityPlayer player, NBTTagCompound data) {
-		return I18n.format(failingText);
+	public String getFailingText(Player player, CompoundTag data) {
+		return I18n.get(failingText);
 	}
 
+	public static final CriterionType<CriterionScore> TYPE = CriterionType.register(
+			ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "score"),
+			(buf, x) -> {
+				buf.writeUtf(x.s);
+				buf.writeVarInt(x.min);
+				buf.writeVarInt(x.max);
+				buf.writeUtf(x.failingText);
+			},
+			buf -> new CriterionScore(buf.readUtf(), buf.readVarInt(), buf.readVarInt(), buf.readUtf()));
+
+	@Override
+	public CriterionType<CriterionScore> getType() {
+		return TYPE;
+	}
 }

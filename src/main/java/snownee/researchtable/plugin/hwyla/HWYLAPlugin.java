@@ -1,5 +1,7 @@
 package snownee.researchtable.plugin.hwyla;
 
+
+/* === DISABLED DURING NEOFORGE 1.21.1 MIGRATION ===
 import mcp.mobius.waila.api.IWailaPlugin;
 import mcp.mobius.waila.api.IWailaRegistrar;
 import mcp.mobius.waila.api.WailaPlugin;
@@ -16,3 +18,5 @@ public class HWYLAPlugin implements IWailaPlugin {
 	}
 
 }
+
+=== END DISABLED === */

@@ -1,106 +1,84 @@
 package snownee.researchtable.plugin.crafttweaker;
 
+import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nullable;
 
-import crafttweaker.api.item.IItemStack;
-import crafttweaker.api.minecraft.CraftTweakerMC;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import net.minecraftforge.oredict.OreDictionary;
-import snownee.kiwi.util.Util;
-import snownee.researchtable.client.gui.GuiTable;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import snownee.researchtable.ResearchTable;
 import snownee.researchtable.client.renderer.ConditionRenderer;
-import snownee.researchtable.client.renderer.EventShowItemCondition;
 
-@SideOnly(Side.CLIENT)
 public class RendererCrTItem extends ConditionRenderer<ConditionCrTItem> {
-	private final NonNullList<ItemStack> stacks;
+	private static final DecimalFormat COMMA = new DecimalFormat("#,###");
+
+	private final List<ItemStack> stacks;
 	@Nullable
 	private final String name;
 
 	public RendererCrTItem(ConditionCrTItem condition) {
-		stacks = NonNullList.create();
-		List<IItemStack> items = condition.ingredient.getItems();
-		for (IItemStack stack : items) {
-			if (stack.getMetadata() == OreDictionary.WILDCARD_VALUE) {
-				Item item = CraftTweakerMC.getItemStack(stack).getItem();
-				item.getSubItems(item.getCreativeTab(), stacks);
-			} else if (!stack.isEmpty()) {
-				stacks.add(CraftTweakerMC.getItemStack(stack));
-			}
-		}
-		MinecraftForge.EVENT_BUS.post(new EventShowItemCondition(stacks));
-		name = condition.customName;
+		stacks = new ArrayList<>(condition.getDisplayItems());
+		name = condition.getCustomName();
 	}
 
 	private ItemStack getStack() {
-		return stacks.get((int) ((GuiTable.ticks / 30) % stacks.size()));
+		if (stacks.isEmpty()) {
+			return ItemStack.EMPTY;
+		}
+		long ticks = Minecraft.getInstance().level != null ? Minecraft.getInstance().level.getGameTime() : 0;
+		int index = (int) ((ticks / 30) % stacks.size());
+		return stacks.get(index);
 	}
 
 	@Override
-	public void draw(Minecraft mc, int x, int y) {
+	public void draw(GuiGraphics graphics, Minecraft mc, int x, int y) {
 		if (!stacks.isEmpty()) {
-			mc.getRenderItem().renderItemAndEffectIntoGUI(getStack(), x, y);
+			graphics.renderItem(getStack(), x, y);
 		}
 	}
 
 	@Override
 	public String name() {
 		if (name != null) {
-			return I18n.format(name);
+			return I18n.get(name);
 		}
 		if (!stacks.isEmpty()) {
-			return getStack().getDisplayName();
+			return getStack().getHoverName().getString();
 		}
-		return I18n.format("researchtable.gui.unknown_item");
+		return I18n.get(ResearchTable.MODID + ".gui.unknown_item");
 	}
 
 	@Override
 	public String format(long number) {
-		return Util.formatComma(number);
+		return COMMA.format(number);
 	}
 
 	public static class Factory implements ConditionRendererFactory<ConditionCrTItem> {
-
 		@Override
 		public ConditionRenderer<ConditionCrTItem> get(ConditionCrTItem condition) {
 			return new RendererCrTItem(condition);
 		}
-
 	}
 
 	@Override
-	public FontRenderer getFont() {
-		FontRenderer font = null;
-		if (!stacks.isEmpty()) {
-			ItemStack stack = getStack();
-			font = stack.getItem().getFontRenderer(stack);
-		}
-		if (font == null) {
-			font = Minecraft.getMinecraft().fontRenderer;
-		}
-		// font.setUnicodeFlag(true);
-		return font;
+	public Font getFont() {
+		return Minecraft.getInstance().font;
 	}
 
 	@Override
-	public List<String> getTooltip(ITooltipFlag flag) {
+	public List<Component> getTooltip(TooltipFlag flag) {
 		if (!stacks.isEmpty()) {
-			return getStack().getTooltip(null, flag);
-		} else {
-			return Collections.EMPTY_LIST;
+			return new ArrayList<>(getStack().getTooltipLines(Item.TooltipContext.EMPTY, null, flag));
 		}
+		return Collections.emptyList();
 	}
-
 }

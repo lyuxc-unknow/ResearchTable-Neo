@@ -1,29 +1,28 @@
 package snownee.researchtable.plugin.crafttweaker;
 
+import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.collect.Lists;
+import com.mojang.blaze3d.systems.RenderSystem;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.renderer.texture.TextureMap;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import snownee.kiwi.client.AdvancedFontRenderer;
-import snownee.kiwi.util.Util;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.TooltipFlag;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
+import net.neoforged.neoforge.fluids.FluidStack;
 import snownee.researchtable.client.renderer.ConditionRenderer;
 
-@SideOnly(Side.CLIENT)
 public class RendererCrTLiquid extends ConditionRenderer<ConditionCrTLiquid> {
+	private static final DecimalFormat COMMA = new DecimalFormat("#,###");
+
 	private final FluidStack fluid;
 
 	public RendererCrTLiquid(ConditionCrTLiquid condition) {
@@ -31,80 +30,53 @@ public class RendererCrTLiquid extends ConditionRenderer<ConditionCrTLiquid> {
 	}
 
 	@Override
-	public void draw(Minecraft mc, int x, int y) {
-		TextureMap textureMapBlocks = mc.getTextureMapBlocks();
-		ResourceLocation still = fluid.getFluid().getStill(fluid);
-		TextureAtlasSprite sprite = null;
-		if (still != null) {
-			sprite = textureMapBlocks.getTextureExtry(still.toString());
-		}
-		if (sprite == null) {
-			sprite = textureMapBlocks.getMissingSprite();
-		}
-
-		int color = fluid.getFluid().getColor(fluid);
-		float red = (color >> 16 & 0xFF) / 255.0F;
-		float green = (color >> 8 & 0xFF) / 255.0F;
-		float blue = (color & 0xFF) / 255.0F;
-		GlStateManager.color(red, green, blue, 1.0F);
-
-		mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
-		double uMin = sprite.getMinU();
-		double uMax = sprite.getMaxU();
-		double vMin = sprite.getMinV();
-		double vMax = sprite.getMaxV();
-
-		Tessellator tessellator = Tessellator.getInstance();
-		BufferBuilder bufferBuilder = tessellator.getBuffer();
-		bufferBuilder.begin(7, DefaultVertexFormats.POSITION_TEX);
-		bufferBuilder.pos(x, y + 16, 0).tex(uMin, vMax).endVertex();
-		bufferBuilder.pos(x + 16, y + 16, 0).tex(uMax, vMax).endVertex();
-		bufferBuilder.pos(x + 16, y, 0).tex(uMax, vMin).endVertex();
-		bufferBuilder.pos(x, y, 0).tex(uMin, vMin).endVertex();
-		tessellator.draw();
-
-		GlStateManager.color(1, 1, 1, 1);
+	public void draw(GuiGraphics graphics, Minecraft mc, int x, int y) {
+		IClientFluidTypeExtensions ext = IClientFluidTypeExtensions.of(fluid.getFluid());
+		ResourceLocation still = ext.getStillTexture(fluid);
+		TextureAtlasSprite sprite = mc.getTextureAtlas(TextureAtlas.LOCATION_BLOCKS).apply(still);
+		int tint = ext.getTintColor(fluid);
+		float a = ((tint >> 24) & 0xFF) / 255.0F;
+		float r = ((tint >> 16) & 0xFF) / 255.0F;
+		float g = ((tint >> 8) & 0xFF) / 255.0F;
+		float b = (tint & 0xFF) / 255.0F;
+		RenderSystem.setShaderColor(r, g, b, a);
+		graphics.blit(x, y, 0, 16, 16, sprite);
+		RenderSystem.setShaderColor(1, 1, 1, 1);
 	}
 
 	@Override
 	public String name() {
-		return fluid.getLocalizedName();
+		return fluid.getHoverName().getString();
 	}
 
 	@Override
 	public String format(long number) {
 		if (number >= 10000) {
-			return Util.formatComma(number / 1000) + "B";
-		} else {
-			return Util.formatComma(number) + "mB";
+			return COMMA.format(number / 1000) + "B";
 		}
+		return COMMA.format(number) + "mB";
 	}
 
 	public static class Factory implements ConditionRendererFactory<ConditionCrTLiquid> {
-
 		@Override
 		public ConditionRenderer<ConditionCrTLiquid> get(ConditionCrTLiquid condition) {
 			return new RendererCrTLiquid(condition);
 		}
-
 	}
 
 	@Override
-	public FontRenderer getFont() {
-		return AdvancedFontRenderer.INSTANCE;
+	public Font getFont() {
+		return Minecraft.getInstance().font;
 	}
 
 	@Override
-	public List<String> getTooltip(ITooltipFlag flag) {
-		List<String> tooltip = Lists.newArrayList(fluid.getLocalizedName());
+	public List<Component> getTooltip(TooltipFlag flag) {
+		List<Component> tooltip = new ArrayList<>();
+		tooltip.add(fluid.getHoverName());
 		if (flag.isAdvanced()) {
-			String s = TextFormatting.GRAY + fluid.getFluid().getName();
-			if (fluid.tag != null) {
-				s += fluid.tag;
-			}
-			tooltip.add(s);
+			ResourceLocation id = BuiltInRegistries.FLUID.getKey(fluid.getFluid());
+			tooltip.add(Component.literal(id.toString()).withStyle(ChatFormatting.DARK_GRAY));
 		}
 		return tooltip;
 	}
-
 }

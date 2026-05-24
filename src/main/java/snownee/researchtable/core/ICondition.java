@@ -8,4 +8,6 @@ public interface ICondition<T> {
 	long matches(T e);
 
 	long getGoal();
+
+	ConditionType<? extends ICondition<T>> getType();
 }

@@ -1,35 +1,42 @@
 package snownee.researchtable.block;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 import com.google.common.base.Objects;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTUtil;
-import net.minecraft.util.EnumFacing;
-import net.minecraftforge.common.UsernameCache;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.common.util.FakePlayer;
-import net.minecraftforge.energy.CapabilityEnergy;
-import net.minecraftforge.energy.IEnergyStorage;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fluids.capability.IFluidTankProperties;
-import net.minecraftforge.items.CapabilityItemHandler;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemHandlerHelper;
-import snownee.kiwi.tile.TileBase;
+import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Connection;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.players.GameProfileCache;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.common.util.FakePlayer;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+import snownee.researchtable.Registration;
 import snownee.researchtable.ResearchTable;
+import snownee.researchtable.container.ContainerTable;
 import snownee.researchtable.core.ConditionTypes;
 import snownee.researchtable.core.DataStorage;
 import snownee.researchtable.core.ICondition;
@@ -37,7 +44,9 @@ import snownee.researchtable.core.Research;
 import snownee.researchtable.core.ResearchList;
 import snownee.researchtable.core.team.TeamHelper;
 
-public class TileTable extends TileBase {
+@MethodsReturnNonnullByDefault
+@ParametersAreNonnullByDefault
+public class TileTable extends BlockEntity implements MenuProvider {
 
 	public class ResearchItemWrapper implements IItemHandler {
 
@@ -46,7 +55,7 @@ public class TileTable extends TileBase {
 
 		@Override
 		public int getSlots() {
-			return research != null && !canComplete ? 1 : 0;
+			return getResearch() != null && !canComplete ? 1 : 0;
 		}
 
 		@Override
@@ -56,9 +65,11 @@ public class TileTable extends TileBase {
 
 		@Override
 		public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-			if (slot == 0 && research != null && !stack.isEmpty() && !canComplete) {
+			if (slot == 0 && getResearch() != null && !stack.isEmpty() && !canComplete) {
 				long matched = match(ConditionTypes.ITEM, stack, simulate);
-				return ItemHandlerHelper.copyStackWithSize(stack, stack.getCount() - (int) matched);
+				var itemStack = stack.copy();
+				itemStack.setCount(stack.getCount() - (int) matched);
+				return itemStack;
 			}
 			return stack;
 		}
@@ -71,6 +82,11 @@ public class TileTable extends TileBase {
 		@Override
 		public int getSlotLimit(int slot) {
 			return Integer.MAX_VALUE;
+		}
+
+		@Override
+		public boolean isItemValid(int slot, ItemStack stack) {
+			return slot == 0 && getResearch() != null && !canComplete;
 		}
 	}
 
@@ -106,106 +122,111 @@ public class TileTable extends TileBase {
 
 		@Override
 		public boolean canReceive() {
-			return research != null && !canComplete;
+			return getResearch() != null && !canComplete;
 		}
 
 	}
 
 	public class ResearchFluidWrapper implements IFluidHandler {
-		private final FluidTankProperties info;
 
 		public ResearchFluidWrapper() {
-			info = new FluidTankProperties();
 		}
 
 		@Override
-		public IFluidTankProperties[] getTankProperties() {
-			return new IFluidTankProperties[] { info };
+		public int getTanks() {
+			return 1;
 		}
 
 		@Override
-		public int fill(FluidStack resource, boolean doFill) {
-			if (research != null && !canComplete) {
-				return (int) match(ConditionTypes.FLUID, resource, !doFill);
+		public FluidStack getFluidInTank(int tank) {
+			return FluidStack.EMPTY;
+		}
+
+		@Override
+		public int getTankCapacity(int tank) {
+			return Integer.MAX_VALUE;
+		}
+
+		@Override
+		public boolean isFluidValid(int tank, FluidStack stack) {
+			return getResearch() != null && !canComplete && match(ConditionTypes.FLUID, stack, true) > 0;
+		}
+
+		@Override
+		public int fill(FluidStack resource, FluidAction action) {
+			if (getResearch() != null && !canComplete) {
+				return (int) match(ConditionTypes.FLUID, resource, action.simulate());
 			}
 			return 0;
 		}
 
 		@Override
-		public FluidStack drain(FluidStack resource, boolean doDrain) {
-			return null;
+		public FluidStack drain(FluidStack resource, FluidAction action) {
+			return FluidStack.EMPTY;
 		}
 
 		@Override
-		public FluidStack drain(int maxDrain, boolean doDrain) {
-			return null;
+		public FluidStack drain(int maxDrain, FluidAction action) {
+			return FluidStack.EMPTY;
 		}
-
-	}
-
-	private class FluidTankProperties implements IFluidTankProperties {
-
-		@Override
-		@Nullable
-		public FluidStack getContents() {
-			return null;
-		}
-
-		@Override
-		public int getCapacity() {
-			return Integer.MAX_VALUE;
-		}
-
-		@Override
-		public boolean canFill() {
-			return research != null && !canComplete;
-		}
-
-		@Override
-		public boolean canDrain() {
-			return false;
-		}
-
-		@Override
-		public boolean canFillFluidType(FluidStack fluidStack) {
-			return canFill() && match(ConditionTypes.FLUID, fluidStack, true) > 0;
-		}
-
-		@Override
-		public boolean canDrainFluidType(FluidStack fluidStack) {
-			return false;
-		}
-
 	}
 
 	@Nullable
-	private Research research;
+	private String researchName;
 	@Nullable
-	private Research lastResearch;
+	private String lastResearchName;
 	@Nullable
 	private long[] progress;
 	public boolean hasChanged;
 	@Nonnull
-	public String ownerName;
-	@Nonnull
+	public String ownerName = "";
+	@Nullable
 	private UUID ownerUUID;
-	private ResearchItemWrapper itemHandler = new ResearchItemWrapper();
-	private ResearchEnergyWrapper energyHandler = new ResearchEnergyWrapper();
-	private ResearchFluidWrapper fluidHandler = new ResearchFluidWrapper();
+	private final ResearchItemWrapper itemHandler = new ResearchItemWrapper();
+	private final ResearchEnergyWrapper energyHandler = new ResearchEnergyWrapper();
+	private final ResearchFluidWrapper fluidHandler = new ResearchFluidWrapper();
 	private boolean canComplete;
-	private NBTTagCompound data = new NBTTagCompound();
+	private CompoundTag data = new CompoundTag();
 	public boolean powered;
+
+	public TileTable(BlockPos pos, BlockState state) {
+		super(Registration.TABLE_BLOCK_ENTITY.get(), pos, state);
+	}
+
+	public IItemHandler getItemHandler() {
+		return itemHandler;
+	}
+
+	public IEnergyStorage getEnergyHandler() {
+		return energyHandler;
+	}
+
+	public IFluidHandler getFluidHandler() {
+		return fluidHandler;
+	}
 
 	@Nullable
 	public Research getResearch() {
-		return research;
+		if (researchName == null) {
+			return null;
+		}
+		Research r = ResearchList.find(researchName).orElse(null);
+		// Detect post-reload condition list changes and reseat the progress array to the new size.
+		// Without this the old progress[] would either short-read or under-fill match() and the
+		// research could never complete.
+		if (r != null && progress != null && progress.length != r.getConditions().size()) {
+			progress = new long[r.getConditions().size()];
+			refreshCanComplete();
+		}
+		return r;
 	}
 
 	@Nullable
 	public Research getLastResearch() {
-		return lastResearch;
+		return lastResearchName == null ? null : ResearchList.find(lastResearchName).orElse(null);
 	}
 
+	@Nullable
 	public UUID getOwnerUUID() {
 		return this.ownerUUID;
 	}
@@ -219,104 +240,129 @@ public class TileTable extends TileBase {
 	}
 
 	public void setResearch(@Nullable Research research) {
-		if (this.research == research) {
+		String newName = research == null ? null : research.getName();
+		if (java.util.Objects.equals(this.researchName, newName)) {
 			return;
 		}
-		if (this.research != null) {
-			lastResearch = this.research;
+		if (this.researchName != null) {
+			lastResearchName = this.researchName;
 		}
-		this.research = research;
+		this.researchName = newName;
 		if (research == null) {
 			progress = null;
 		} else {
 			progress = new long[research.getConditions().size()];
 		}
 		refreshCanComplete();
+		invalidateCapabilities();
 	}
 
-	@Override
-	protected void readPacketData(NBTTagCompound tag) {
-		if (tag.hasKey("data", Constants.NBT.TAG_COMPOUND)) {
-			data = tag.getCompoundTag("data");
+	private void readData(CompoundTag tag) {
+		if (tag.contains("data", 10)) {
+			data = tag.getCompound("data");
 		}
-		if (tag.hasKey("owner", Constants.NBT.TAG_COMPOUND)) {
-			NBTTagCompound credential = tag.getCompoundTag("owner");
+		if (tag.contains("owner", 10)) {
+			CompoundTag credential = tag.getCompound("owner");
 			this.ownerName = credential.getString("name");
-			this.ownerUUID = NBTUtil.getUUIDFromTag(credential.getCompoundTag("uuid"));
-		} else {
-			ResearchTable.logger.error("Invalid table data: pos={} tag={}", pos, tag);
-			invalidate();
-			// TODO Warn about missing owner info
+			if (credential.contains("uuid")) {
+				this.ownerUUID = credential.getUUID("uuid");
+			}
 		}
-		if (tag.hasKey("research", Constants.NBT.TAG_STRING)) {
+		if (tag.contains("research", 8)) {
 			String name = tag.getString("research");
-			Optional<Research> result = ResearchList.find(name);
-			if (result.isPresent()) {
-				setResearch(result.get());
+			researchName = name;
+			Research r = ResearchList.find(name).orElse(null);
+			if (r != null) {
+				progress = new long[r.getConditions().size()];
 				for (int i = 0; i < progress.length; i++) {
-					if (!tag.hasKey("progress" + i, Constants.NBT.TAG_LONG)) {
-						continue;
+					if (tag.contains("progress" + i, 4)) {
+						progress[i] = tag.getLong("progress" + i);
 					}
-					progress[i] = tag.getLong("progress" + i);
 				}
 				refreshCanComplete();
+			} else {
+				// Research name persisted, but not present in the current ResearchList. Could be
+				// a pre-sync BE update on the client, or a script removal. getResearch() will lazily
+				// allocate progress next time the name resolves.
+				progress = null;
+				canComplete = false;
 			}
+			invalidateCapabilities();
 		} else {
 			setResearch(null);
 		}
-		hasChanged = true; // client
+		hasChanged = true;
 	}
 
-	@Override
-	public void readFromNBT(NBTTagCompound compound) {
-		super.readFromNBT(compound);
-		if (compound.hasKey("last", Constants.NBT.TAG_STRING)) {
-			lastResearch = ResearchList.find(compound.getString("last")).orElse(null);
+	private void writeData(CompoundTag tag) {
+		CompoundTag credential = new CompoundTag();
+		if (!ownerName.isEmpty()) {
+			credential.putString("name", ownerName);
 		}
-		if (compound.hasKey("powered", Constants.NBT.TAG_BYTE)) {
-			powered = compound.getBoolean("powered");
+		if (ownerUUID != null) {
+			credential.putUUID("uuid", ownerUUID);
 		}
-		readPacketData(compound);
-	}
-
-	@Override
-	protected NBTTagCompound writePacketData(NBTTagCompound tag) {
-		NBTTagCompound credential = new NBTTagCompound();
-		if (ownerName != null || ownerUUID != null) {
-			if (ownerName != null) {
-				credential.setString("name", ownerName);
-			}
-			if (ownerUUID != null) {
-				credential.setTag("uuid", NBTUtil.createUUIDTag(this.ownerUUID));
-			}
-		}
-		tag.setTag("owner", credential);
-		if (research != null) {
-			tag.setString("research", research.getName());
+		tag.put("owner", credential);
+		if (researchName != null && progress != null) {
+			tag.putString("research", researchName);
 			for (int i = 0; i < progress.length; i++) {
-				tag.setLong("progress" + i, progress[i]);
+				tag.putLong("progress" + i, progress[i]);
 			}
 		}
-		tag.setTag("data", data);
+		tag.put("data", data);
+	}
+
+	@Override
+	public void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+		super.loadAdditional(tag, registries);
+		if (tag.contains("last", 8)) {
+			lastResearchName = tag.getString("last");
+		}
+		if (tag.contains("powered", 1)) {
+			powered = tag.getBoolean("powered");
+		}
+		readData(tag);
+	}
+
+	@Override
+	protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+		super.saveAdditional(tag, registries);
+		writeData(tag);
+		if (lastResearchName != null) {
+			tag.putString("last", lastResearchName);
+		}
+		tag.putBoolean("powered", powered);
+	}
+
+	@Override
+	public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+		CompoundTag tag = super.getUpdateTag(registries);
+		writeData(tag);
 		return tag;
 	}
 
 	@Override
-	public NBTTagCompound writeToNBT(NBTTagCompound compound) {
-		super.writeToNBT(compound);
-		writePacketData(compound);
-		if (lastResearch != null) {
-			compound.setString("last", lastResearch.getName());
-		}
-		compound.setBoolean("powered", powered);
-		return compound;
+	public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
+		super.handleUpdateTag(tag, registries);
+		readData(tag);
+	}
+
+	@Override
+	public Packet<ClientGamePacketListener> getUpdatePacket() {
+		return ClientboundBlockEntityDataPacket.create(this);
+	}
+
+	@Override
+	public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider registries) {
+		readData(pkt.getTag());
 	}
 
 	public float getProgress() {
-		if (research == null) {
+		Research r = getResearch();
+		if (r == null || progress == null) {
 			return 0;
 		}
-		List<ICondition> conditions = research.getConditions();
+		List<ICondition> conditions = r.getConditions();
 		if (conditions.isEmpty()) {
 			return 100;
 		}
@@ -337,41 +383,21 @@ public class TileTable extends TileBase {
 		return 0;
 	}
 
-	public NBTTagCompound getData() {
+	public CompoundTag getData() {
 		return data;
 	}
 
-	public void setData(NBTTagCompound data) {
+	public void setData(CompoundTag data) {
 		this.data = data;
 	}
 
-	@Override
-	public <T> T getCapability(Capability<T> capability, EnumFacing facing) {
-		if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
-			return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(itemHandler);
-		}
-		if (capability == CapabilityEnergy.ENERGY) {
-			return CapabilityEnergy.ENERGY.cast(energyHandler);
-		}
-		if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY) {
-			return CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY.cast(fluidHandler);
-		}
-		return super.getCapability(capability, facing);
-	}
-
-	@Override
-	public boolean hasCapability(Capability<?> capability, EnumFacing facing) {
-		return capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY || capability == CapabilityEnergy.ENERGY || capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY || super.hasCapability(capability, facing);
-	}
-
-	public boolean hasPermission(@Nullable EntityPlayer player) {
-		if (player == null || player.world.isRemote) // Minecraft.player sometimes can be null
-		{
+	public boolean hasPermission(@Nullable Player player) {
+		if (player == null || (player.level() != null && player.level().isClientSide)) {
 			return true;
 		}
-		return player.getGameProfile().getId().equals(this.ownerUUID) || Objects.equal(TeamHelper.provider.getOwner(player.getGameProfile().getId()), ownerUUID);
-
-		//ResearchTable.logger.warn("Player {} ('{}', UUID '{}') tried to access this table with owner of '{}' (UUID: '{}') but failed. This may be a bug.", player.getName(), player, player.getUniqueID(), this.ownerName, this.ownerUUID);
+		return ownerUUID == null
+				|| player.getGameProfile().getId().equals(this.ownerUUID)
+				|| Objects.equal(TeamHelper.provider.getOwner(player.getGameProfile().getId()), ownerUUID);
 	}
 
 	public boolean canComplete() {
@@ -379,53 +405,70 @@ public class TileTable extends TileBase {
 	}
 
 	private void refreshCanComplete() {
-		if (research == null) {
+		Research r = researchName == null ? null : ResearchList.find(researchName).orElse(null);
+		if (r == null || progress == null) {
 			canComplete = false;
-			markDirty();
+			setChanged();
 			return;
 		}
-		List<ICondition> conditions = research.getConditions();
+		List<ICondition> conditions = r.getConditions();
+		if (progress.length != conditions.size()) {
+			// Out-of-sync after /reload; rebuild and re-evaluate.
+			progress = new long[conditions.size()];
+		}
 		for (int i = 0; i < progress.length; i++) {
 			if (conditions.get(i).getGoal() > progress[i]) {
 				canComplete = false;
-				markDirty();
+				setChanged();
 				return;
 			}
 		}
 		canComplete = true;
-		markDirty();
+		setChanged();
 	}
 
-	public void complete(EntityPlayer player) {
-		if (research == null || world.isRemote) {
+	public void complete(Player player) {
+		Research r = getResearch();
+		if (r == null || ownerUUID == null || level == null || level.isClientSide) {
 			return;
 		}
-		if (DataStorage.complete(ownerUUID, research) > 0) {
-			research.complete(world, pos, player);
-			hasChanged = true; // server
+		if (DataStorage.complete(ownerUUID, r) > 0) {
+			r.complete(level, getBlockPos(), player);
+			hasChanged = true;
 		}
 		setResearch(null);
 	}
 
-	public void submit(EntityPlayer player) {
-		// TODO: insert null NBT items first
-		if (research == null || world.isRemote) {
+	public void submit(Player player) {
+		if (getResearch() == null || level == null || level.isClientSide) {
 			return;
 		}
-		for (int i = 0; i < player.inventory.mainInventory.size(); ++i) {
-			ItemStack stack = player.inventory.mainInventory.get(i);
+		for (int i = 0; i < player.getInventory().items.size(); ++i) {
+			ItemStack stack = player.getInventory().items.get(i);
 			ItemStack remain = itemHandler.insertItem(0, stack, false);
 			if (remain != stack) {
-				player.inventory.mainInventory.set(i, remain);
+				player.getInventory().items.set(i, remain);
+			}
+		}
+		int availableXp = snownee.researchtable.plugin.minecraft.ExperienceHelper.getTotalXp(player);
+		if (availableXp > 0) {
+			long consumed = match(ConditionTypes.EXPERIENCE, availableXp, false);
+			if (consumed > 0) {
+				snownee.researchtable.plugin.minecraft.ExperienceHelper.drain(player, (int) consumed);
 			}
 		}
 	}
 
 	public <T> long match(Supplier<Class<T>> type, T e, boolean simulate) {
-		List<ICondition> conditions = research.getConditions();
+		Research r = getResearch();
+		if (r == null || progress == null) {
+			return 0;
+		}
+		List<ICondition> conditions = r.getConditions();
 		long matched = 0;
 		for (int i = 0; i < conditions.size(); ++i) {
-			ICondition condition = conditions.get(i);
+			@SuppressWarnings("unchecked")
+			ICondition<T> condition = (ICondition<T>) conditions.get(i);
 			if (condition.getMatchType() == type) {
 				long matchedIn = condition.matches(e);
 				if (matchedIn < 0) {
@@ -453,7 +496,7 @@ public class TileTable extends TileBase {
 		return matched;
 	}
 
-	public void putOwnerInfo(EntityPlayer player) {
+	public void putOwnerInfo(Player player) {
 		if (player instanceof FakePlayer) {
 			return;
 		}
@@ -462,16 +505,43 @@ public class TileTable extends TileBase {
 		if (owner != null) {
 			ownerName = TeamHelper.provider.getTeamName(owner);
 			if (ownerName == null) {
-				ownerName = UsernameCache.getLastKnownUsername(owner);
+				ownerName = lookupName(owner, player.getServer());
 			}
 			if (ownerName == null) {
-				ownerName = player.getName();
+				ownerName = player.getName().getString();
 			}
 			setOwnerUUID(owner);
 		} else {
-			ownerName = player.getName();
+			ownerName = player.getName().getString();
 			setOwnerUUID(uuid);
 		}
 	}
 
+	@Nullable
+	private static String lookupName(UUID uuid, @Nullable MinecraftServer server) {
+		if (server == null) {
+			return null;
+		}
+		GameProfileCache cache = server.getProfileCache();
+		if (cache == null) {
+			return null;
+		}
+		return cache.get(uuid).map(p -> p.getName()).orElse(null);
+	}
+
+	@SuppressWarnings("unused")
+	private static UUID touchUUIDUtil() {
+		return UUIDUtil.uuidFromIntArray(new int[]{0, 0, 0, 0});
+	}
+
+	@Override
+	public Component getDisplayName() {
+		return Component.translatable("block." + ResearchTable.MODID + ".table");
+	}
+
+	@Override
+	@Nullable
+	public AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {
+		return new ContainerTable(containerId, inventory, getBlockPos(), this);
+	}
 }

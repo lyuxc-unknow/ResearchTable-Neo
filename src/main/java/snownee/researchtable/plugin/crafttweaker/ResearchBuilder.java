@@ -7,17 +7,17 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
+import org.openzen.zencode.java.ZenCodeType;
+
+import com.blamejared.crafttweaker.api.annotation.ZenRegister;
+import com.blamejared.crafttweaker.api.fluid.IFluidStack;
+import com.blamejared.crafttweaker.api.ingredient.IIngredient;
+import com.blamejared.crafttweaker.api.item.IItemStack;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import crafttweaker.annotations.ZenRegister;
-import crafttweaker.api.item.IIngredient;
-import crafttweaker.api.item.IItemStack;
-import crafttweaker.api.liquid.ILiquidStack;
-import crafttweaker.api.minecraft.CraftTweakerMC;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraftforge.oredict.OreDictionary;
+import net.minecraft.core.NonNullList;
+import net.minecraft.world.item.ItemStack;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.core.CriterionResearchCount;
 import snownee.researchtable.core.CriterionResearches;
@@ -31,12 +31,9 @@ import snownee.researchtable.core.ResearchList;
 import snownee.researchtable.core.RewardExecute;
 import snownee.researchtable.core.RewardItems;
 import snownee.researchtable.plugin.forge.ConditionForgeEnergy;
-import stanhebben.zenscript.annotations.Optional;
-import stanhebben.zenscript.annotations.ZenClass;
-import stanhebben.zenscript.annotations.ZenMethod;
 
-@ZenClass("ResearchTable.Builder")
 @ZenRegister
+@ZenCodeType.Name("mods.researchtable.ResearchBuilder")
 public class ResearchBuilder {
 	private static final String KEY_NO_TITLE = ResearchTable.MODID + ".title.missing";
 	private static final String KEY_NO_DESCRIPTION = ResearchTable.MODID + ".description.missing";
@@ -57,18 +54,13 @@ public class ResearchBuilder {
 		this.category = category.category;
 	}
 
-	@ZenMethod
+	@ZenCodeType.Method
 	public ResearchBuilder setIcons(@Nonnull IIngredient... items) {
 		NonNullList<ItemStack> actualItems = NonNullList.create();
 		for (IIngredient item : items) {
-			for (IItemStack iItemStack : item.getItems()) {
-				if (iItemStack != null) {
-					ItemStack stack = CraftTweakerMC.getItemStack(iItemStack);
-					if (stack.getMetadata() == OreDictionary.WILDCARD_VALUE) {
-						stack.getItem().getSubItems(stack.getItem().getCreativeTab(), actualItems);
-					} else {
-						actualItems.add(stack);
-					}
+			for (IItemStack stack : item.getItems()) {
+				if (stack != null && !stack.getInternal().isEmpty()) {
+					actualItems.add(stack.getInternal().copy());
 				}
 			}
 		}
@@ -76,108 +68,152 @@ public class ResearchBuilder {
 		return this;
 	}
 
-	@ZenMethod
+	@ZenCodeType.Method
 	public ResearchBuilder setRequiredResearches(@Nonnull String... researches) {
 		Set<String> set = ImmutableSet.copyOf(researches);
 		criteria.add(new CriterionResearches(set, set.size()));
 		return this;
 	}
 
-	@ZenMethod
+	@ZenCodeType.Method
 	public ResearchBuilder setOptionalResearches(int amount, @Nonnull String... researches) {
 		Set<String> set = ImmutableSet.copyOf(researches);
 		criteria.add(new CriterionResearches(set, amount));
 		return this;
 	}
 
-	@ZenMethod
-	public ResearchBuilder setRequiredScore(String score, String failingText, int min, @Optional int max) {
+	@ZenCodeType.Method
+	public ResearchBuilder setRequiredScore(String score, String failingText, int min, @ZenCodeType.OptionalInt int max) {
 		if (max < min)
 			max = min;
 		criteria.add(new CriterionScore(score, min, max, failingText));
 		return this;
 	}
 
-	@ZenMethod
+	@ZenCodeType.Method
 	public ResearchBuilder setRewardCommands(@Nonnull String... commands) {
 		rewards.add(new RewardExecute(commands));
 		return this;
 	}
 
-	@ZenMethod
+	@ZenCodeType.Method
 	public ResearchBuilder setRewardItems(@Nonnull IItemStack... items) {
-		NonNullList<ItemStack> rawItems = NonNullList.from(ItemStack.EMPTY, CraftTweakerMC.getItemStacks(items));
+		NonNullList<ItemStack> rawItems = NonNullList.create();
+		for (IItemStack item : items) {
+			rawItems.add(item.getInternal().copy());
+		}
 		rewards.add(new RewardItems(rawItems));
 		return this;
 	}
 
-	@ZenMethod
+	@ZenCodeType.Method
 	public ResearchBuilder setTriggerCommands(@Nonnull String... commands) {
 		triggers.add(new RewardExecute(commands));
 		return this;
 	}
 
-	@ZenMethod
+	@ZenCodeType.Method
 	public ResearchBuilder setTriggerItems(@Nonnull IItemStack... items) {
-		NonNullList<ItemStack> rawItems = NonNullList.from(ItemStack.EMPTY, CraftTweakerMC.getItemStacks(items));
+		NonNullList<ItemStack> rawItems = NonNullList.create();
+		for (IItemStack item : items) {
+			rawItems.add(item.getInternal().copy());
+		}
 		triggers.add(new RewardItems(rawItems));
 		return this;
 	}
 
-	@ZenMethod
+	@ZenCodeType.Method
 	public ResearchBuilder setTitle(@Nonnull String title) {
 		this.title = title;
 		return this;
 	}
 
-	@ZenMethod
+	@ZenCodeType.Method
 	public ResearchBuilder setDescription(@Nonnull String description) {
 		this.description = description;
 		return this;
 	}
 
-	@ZenMethod
+	// ---- Item conditions: multiple overloads for ZenScript usage ----
+
+	@ZenCodeType.Method
 	public ResearchBuilder addCondition(@Nonnull IIngredient... ingredients) {
 		for (IIngredient ingredient : ingredients) {
-			if (ingredient instanceof ILiquidStack) {
-				conditions.add(new ConditionCrTLiquid((ILiquidStack) ingredient));
-			} else {
-				conditions.add(new ConditionCrTItem(ingredient));
-			}
+			pushItem(ingredient, ingredient.getItems()[0].amount(), null);
 		}
 		return this;
 	}
 
-	@ZenMethod
-	public ResearchBuilder addCondition(@Nonnull IIngredient ingredient, long amount, @Optional String customName) {
-		conditions.add(new ConditionCrTItem(ingredient, amount).setCustomName(customName));
+	@ZenCodeType.Method
+	public ResearchBuilder addCondition(@Nonnull IIngredient ingredient) {
+		return pushItem(ingredient, ingredient.getItems()[0].amount(), null);
+	}
+
+	@ZenCodeType.Method
+	public ResearchBuilder addCondition(@Nonnull IIngredient ingredient, @Nonnull String customName) {
+		return pushItem(ingredient, ingredient.getItems()[0].amount(), customName);
+	}
+
+	@ZenCodeType.Method
+	public ResearchBuilder addItemCondition(@Nonnull IIngredient ingredient) {
+		return pushItem(ingredient, ingredient.getItems()[0].amount(), null);
+	}
+
+	@ZenCodeType.Method
+	public ResearchBuilder addItemCondition(@Nonnull IIngredient ingredient, @Nonnull String customName) {
+		return pushItem(ingredient, ingredient.getItems()[0].amount(), customName);
+	}
+
+	private ResearchBuilder pushItem(IIngredient ingredient, long amount, String customName) {
+		ResearchTable.logger.debug("pushItem: ingredient={} amount={} customName={}", ingredient, amount, customName);
+		ConditionCrTItem cond = new ConditionCrTItem(ingredient, amount);
+		if (customName != null && !customName.isEmpty()) {
+			cond.setCustomName(customName);
+		}
+		conditions.add(cond);
 		return this;
 	}
 
-	@ZenMethod
-	public ResearchBuilder addCondition(@Nonnull ILiquidStack ingredient, long amount) {
-		conditions.add(new ConditionCrTLiquid(ingredient, amount));
+	// ---- Fluid conditions ----
+
+	@ZenCodeType.Method
+	public ResearchBuilder addFluidCondition(@Nonnull IFluidStack fluid) {
+		conditions.add(new ConditionCrTLiquid(fluid, fluid.getAmount()));
 		return this;
 	}
 
-	@ZenMethod
+	@ZenCodeType.Method
+	public ResearchBuilder addFluidCondition(@Nonnull IFluidStack fluid, int amount) {
+		conditions.add(new ConditionCrTLiquid(fluid, amount));
+		return this;
+	}
+
+	// ---- Energy ----
+
+	@ZenCodeType.Method
+	public ResearchBuilder addEnergyCondition(int amount) {
+		conditions.add(new ConditionForgeEnergy(amount));
+		return this;
+	}
+
+	@ZenCodeType.Method
 	public ResearchBuilder addEnergyCondition(long amount) {
 		conditions.add(new ConditionForgeEnergy(amount));
 		return this;
 	}
 
-	@ZenMethod
+	@ZenCodeType.Method
 	public ResearchBuilder setMaxCount(int count) {
 		this.maxCount = count;
 		return this;
 	}
 
-	@ZenMethod
+	@ZenCodeType.Method
 	public ResearchBuilder setNoMaxCount() {
 		return setMaxCount(0);
 	}
 
-	@ZenMethod
+	@ZenCodeType.Method
 	public boolean build() {
 		if (title == null) {
 			title = KEY_NO_TITLE;
@@ -191,5 +227,4 @@ public class ResearchBuilder {
 		Research research = new Research(name, category, title, description, criteria, triggers, rewards, conditions, icons);
 		return ResearchList.add(research);
 	}
-
 }

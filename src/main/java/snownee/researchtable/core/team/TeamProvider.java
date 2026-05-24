@@ -15,7 +15,7 @@ public interface TeamProvider {
 	@Nullable
 	String getTeamName(UUID player);
 
-	public static enum Stub implements TeamProvider {
+	enum Stub implements TeamProvider {
 		INSTANCE;
 
 		@Override

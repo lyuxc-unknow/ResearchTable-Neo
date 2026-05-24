@@ -1,16 +1,17 @@
 package snownee.researchtable.plugin.crafttweaker;
 
-import crafttweaker.annotations.ZenRegister;
-import snownee.researchtable.core.ResearchCategory;
-import stanhebben.zenscript.annotations.ZenClass;
+import com.blamejared.crafttweaker.api.annotation.ZenRegister;
 
-@ZenClass("ResearchTable.Category")
+import org.openzen.zencode.java.ZenCodeType;
+
+import snownee.researchtable.core.ResearchCategory;
+
 @ZenRegister
+@ZenCodeType.Name("mods.researchtable.ResearchCategory")
 public class ResearchCategoryWrapper {
 	protected final ResearchCategory category;
 
 	public ResearchCategoryWrapper(ResearchCategory category) {
 		this.category = category;
 	}
-
 }

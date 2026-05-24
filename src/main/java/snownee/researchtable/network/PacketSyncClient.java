@@ -1,43 +1,26 @@
 package snownee.researchtable.network;
 
-import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraftforge.fml.common.network.ByteBufUtils;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import snownee.kiwi.network.PacketMod;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import snownee.researchtable.core.DataStorage;
 
-public class PacketSyncClient implements PacketMod {
-	private Object2IntMap<String> map;
+public record PacketSyncClient(Object2IntMap<String> map) implements CustomPacketPayload {
 
-	public PacketSyncClient() {
-	}
+	public static final Type<PacketSyncClient> TYPE = new Type<>(NetworkChannel.id("sync_client"));
 
-	public PacketSyncClient(Object2IntMap<String> map) {
-		this.map = map;
-	}
-
-	@Override
-	@SideOnly(Side.CLIENT)
-	public void handleClient(EntityPlayerSP player) {
-		DataStorage.clientData = map;
-	}
+	public static final StreamCodec<RegistryFriendlyByteBuf, PacketSyncClient> STREAM_CODEC = StreamCodec.of(
+			(buf, payload) -> ByteBufCodecs.COMPOUND_TAG.encode(buf, DataStorage.writePlayerData(payload.map())),
+			buf -> {
+				CompoundTag tag = ByteBufCodecs.COMPOUND_TAG.decode(buf);
+				return new PacketSyncClient(DataStorage.readPlayerData(tag));
+			});
 
 	@Override
-	public void handleServer(EntityPlayerMP player) {
+	public Type<? extends CustomPacketPayload> type() {
+		return TYPE;
 	}
-
-	@Override
-	public void readDataFrom(ByteBuf buf) {
-		map = DataStorage.readPlayerData(ByteBufUtils.readTag(buf));
-	}
-
-	@Override
-	public void writeDataTo(ByteBuf buf) {
-		ByteBufUtils.writeTag(buf, DataStorage.writePlayerData(map));
-	}
-
 }

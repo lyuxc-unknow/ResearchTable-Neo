@@ -1,5 +1,7 @@
 package snownee.researchtable.plugin.reskillable;
 
+
+/* === DISABLED DURING NEOFORGE 1.21.1 MIGRATION ===
 import codersafterdark.reskillable.api.ReskillableRegistries;
 import codersafterdark.reskillable.api.data.PlayerData;
 import codersafterdark.reskillable.api.data.PlayerDataHandler;
@@ -22,3 +24,5 @@ public class Helper {
 		return skillInfo.getLevel();
 	}
 }
+
+=== END DISABLED === */

@@ -2,78 +2,86 @@ package snownee.researchtable.command;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
-import net.minecraft.command.CommandBase;
-import net.minecraft.command.CommandException;
-import net.minecraft.command.ICommandSender;
-import net.minecraft.command.WrongUsageException;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.math.BlockPos;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
+
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.core.DataStorage;
 import snownee.researchtable.core.Research;
 import snownee.researchtable.core.ResearchList;
 
-public class CommandResearch extends CommandBase {
+public class CommandResearch {
 
-	@Override
-	public String getName() {
-		return ResearchTable.MODID;
+	private static final SimpleCommandExceptionType ERROR_RESEARCH_NOT_FOUND = new SimpleCommandExceptionType(Component.translatable("commands." + ResearchTable.MODID + ".researchNotFound"));
+
+	private static final SuggestionProvider<CommandSourceStack> RESEARCH_SUGGESTIONS = (ctx, builder) -> {
+		Collection<String> names = ResearchList.LIST.keySet();
+		return SharedSuggestionProvider.suggest(java.util.stream.Stream.concat(names.stream(), java.util.stream.Stream.of("all")), builder);
+	};
+
+	@SubscribeEvent
+	public static void registerCommands(RegisterCommandsEvent event) {
+		register(event.getDispatcher());
 	}
 
-	@Override
-	public String getUsage(ICommandSender sender) {
-		return "commands." + getName() + ".usage";
+	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dispatcher.register(
+				Commands.literal(ResearchTable.MODID)
+						.requires(s -> s.hasPermission(2))
+						.then(Commands.argument("player", EntityArgument.player())
+								.then(Commands.argument("research", StringArgumentType.word())
+										.suggests(RESEARCH_SUGGESTIONS)
+										.executes(CommandResearch::executeGet)
+										.then(Commands.argument("count", IntegerArgumentType.integer(0))
+												.executes(CommandResearch::executeSet))))
+		);
 	}
 
-	@Override
-	public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-		if (args.length != 2 && args.length != 3) {
-			throw new WrongUsageException(getUsage(sender));
+	private static int executeGet(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
+		String name = StringArgumentType.getString(ctx, "research");
+		Collection<Research> researches = lookup(name);
+		for (Research r : researches) {
+			int count = DataStorage.count(player.getGameProfile().getId(), r);
+			ctx.getSource().sendSuccess(() -> Component.translatable("commands." + ResearchTable.MODID + ".get", player.getName().getString(), count), true);
 		}
-		EntityPlayerMP player = getPlayer(server, sender, args[0]);
-		boolean all = false;
-		Collection<Research> researchs;
-		if (args[1].equals("all")) {
-			researchs = ResearchList.LIST.values();
-		} else {
-			Optional<Research> result = ResearchList.find(args[1]);
-			if (!result.isPresent()) {
-				throw new CommandException("commands." + getName() + ".researchNotFound", args[1]);
-			}
-			Research research = result.get();
-			researchs = Collections.singletonList(research);
-		}
-		if (args.length == 2) {
-			for (Research research : researchs) {
-				notifyCommandListener(sender, this, "commands." + getName() + ".get", player.getName(), DataStorage.count(player.getGameProfile().getId(), research));
-			}
-		} else {
-			for (Research research : researchs) {
-				int count = parseInt(args[2], 0);
-				DataStorage.setCount(player.getGameProfile().getId(), research, count);
-				notifyCommandListener(sender, this, "commands." + getName() + ".set", player.getName());
-			}
-		}
+		return researches.size();
 	}
 
-	@Override
-	public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, BlockPos targetPos) {
-		if (args.length == 1) {
-			return getListOfStringsMatchingLastWord(args, server.getOnlinePlayerNames());
+	private static int executeSet(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
+		String name = StringArgumentType.getString(ctx, "research");
+		int count = IntegerArgumentType.getInteger(ctx, "count");
+		Collection<Research> researches = lookup(name);
+		for (Research r : researches) {
+			DataStorage.setCount(player.getGameProfile().getId(), r, count);
+			ctx.getSource().sendSuccess(() -> Component.translatable("commands." + ResearchTable.MODID + ".set", player.getName().getString()), true);
 		}
-		if (args.length == 2) {
-			Collection<String> names = ResearchList.LIST.keySet();
-			return getListOfStringsMatchingLastWord(args, names);
-		}
-		return super.getTabCompletions(server, sender, args, targetPos);
+		return researches.size();
 	}
 
-	@Override
-	public int getRequiredPermissionLevel() {
-		return 2;
+	private static Collection<Research> lookup(String name) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		if (name.equals("all")) {
+			return ResearchList.LIST.values();
+		}
+		Optional<Research> result = ResearchList.find(name);
+		if (result.isEmpty()) {
+			throw ERROR_RESEARCH_NOT_FOUND.create();
+		}
+		return Collections.singletonList(result.get());
 	}
 }

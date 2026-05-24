@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(javap -p ./com/blamejared/crafttweaker/api/ingredient/IIngredient.class)"
+    ]
+  }
+}

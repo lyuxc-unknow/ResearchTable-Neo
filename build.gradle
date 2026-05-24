@@ -1,110 +1,104 @@
-buildscript {
-    repositories {
-        jcenter()
-        maven {
-            name = "forge"
-            url = "http://files.minecraftforge.net/maven"
-        }
-    }
-    dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
-    }
+plugins {
+    id 'idea'
+    id 'eclipse'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.78'
 }
-
-apply plugin: 'idea'
-apply plugin: 'net.minecraftforge.gradle.forge'
 
 version = "${version_major}.${version_minor}.${version_patch}"
 group = "snownee.research"
-archivesBaseName = "ResearchTable"
+base {
+    archivesName = "ResearchTable"
+}
 
 if (System.getenv().BUILD_NUMBER != null) {
     version += "-build${System.getenv().BUILD_NUMBER}"
 }
 
-sourceCompatibility = targetCompatibility = '1.8'
-
-[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 repositories {
+    mavenCentral()
+    // Plugin dependencies disabled during migration. Kept for reference.
+    /*
     maven {
         name = "jei"
-        url = "https://dvs1.progwml6.com/files/maven"
+        url = "https://maven.blamejared.com/"
     }
     maven {
         name = 'tterrag maven'
         url = "https://maven.tterrag.com/"
     }
     maven {
-        name = 'stages'
-        url = 'https://mmdmaven.blamejared.com/'
-        //url = 'https://maven.mcmoddev.com'
-    }
-    maven {
-        name = "jared"
-        url = "https://maven.blamejared.com"
-    }
-    maven {
-        name = "tehnut"
-        url = "https://maven.tehnut.info"
-    }
-    maven {
         url = "https://www.cursemaven.com"
     }
+    */
 
-    flatDir {
-        dirs 'libs'
+    maven {
+        name = "CraftTweaker"
+        url = "https://maven.blamejared.com/"
+    }
+
+    maven {
+        name = "The One Probe"
+        url "https://maven.k-4u.nl"
+    }
+
+    maven {
+        name = "curse maven"
+        url = "https://www.cursemaven.com"
     }
 }
 
-minecraft {
-    version = "${minecraft_version}-${forge_version}"
-    runDir = "run"
+neoForge {
+    version = "${neoforge_version}"
 
-    mappings = "${mapping_version}"
-    useDepAts = true
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+            programArgument '--nogui'
+        }
+        data {
+            data()
+        }
+    }
 
-    replace "@VERSION_INJECT@", project.version
+    mods {
+        researchtable {
+            sourceSet sourceSets.main
+        }
+    }
 }
 
 dependencies {
-    // Why not deobfCompile? Since JEI 4.13.1, JEI uses stable_39 mapping, so we are on the same MCP version now.
-    compile "mezz.jei:jei_${minecraft_version}:${jei_version}"
+    compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
+    compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}")
+    runtimeOnly("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
 
-    deobfCompile "CraftTweaker2:CraftTweaker2-MC1120-Main:1.12-${ct_version}"
-    deobfCompile "CraftTweaker2:CraftTweaker2-API:${ct_version}"
-    deobfCompile "CraftTweaker2:ZenScript:${ct_version}"
-    compile "net.darkhax.bookshelf:Bookshelf-1.12.2:${bookshelf_version}"
-    compile "net.darkhax.gamestages:GameStages-1.12.2:${gamestages_version}"
-    compile "net.darkhax.itemstages:ItemStages-1.12.2:${itemstages_version}"
-    deobfCompile "curse.maven:hwyla-253449:2568751"
-    deobfCompile "codersafterdark.reskillable:Reskillable:1.12.2-1.12.5-PR-156.1"
-    deobfCompile("curse.maven:the-one-probe-245211:2667280") {
-        exclude group: 'cofh'
-    }
-    deobfCompile "curse.maven:together-forever-285968:2700901"
-    compile files(
-        'libs/Kiwi-1.12.2-0.5.3.32-deobf.jar',
-        'libs/GrandEconomy-1.12.2-2.0.0-api.jar'
-    )
-    //deobfCompile "curse.maven:grand-economy-312141:3139910"
+    implementation "curse.maven:astage-1120180:8010695"
+
+    implementation "curse.maven:kiwi-303657:8110292"
+    implementation "com.blamejared.crafttweaker:CraftTweaker-neoforge-${minecraft_version}:${crafttweaker_version}"
+    implementation "mcjty.theoneprobe:theoneprobe:${top_version}"
 }
 
-processResources {
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version: minecraft_version,
+            neoforge_version : neoforge_version,
+            mod_version      : project.version
+    ]
+    inputs.properties replaceProperties
 
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-        expand 'version':project.version, 'mcversion':project.minecraft.version
-    }
-
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties
     }
 }
 
-jar {
+tasks.named('jar', Jar).configure {
     exclude "**/*.bat"
     exclude "**/*.psd"
     exclude "**/*.d"
@@ -112,20 +106,17 @@ jar {
     exclude "**/*.e"
     exclude "**/*.txt"
     manifest {
-        attributes 'FMLAT': 'research_at.cfg'
-        attributes 'Maven-Artifact': "${project.group}:${project.archivesBaseName}:${project.version}"
+        attributes 'Maven-Artifact': "${project.group}:${project.base.archivesName.get()}:${project.version}"
         attributes 'Timestamp': System.currentTimeMillis()
     }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
 }
 
 javadoc {
     options.encoding = "UTF-8"
     options.charSet = "UTF-8"
-    options.links = [
-            'https://docs.oracle.com/javase/8/docs/api/'
-    ]
-    options.tags = [
-            "implSpec:a:Implementation Specification",
-            "implNote:a:Implementation Note"
-    ]
 }

@@ -1,53 +1,78 @@
 package snownee.researchtable;
 
-import net.minecraft.util.BlockRenderLayer;
-import net.minecraftforge.common.config.Config;
-import net.minecraftforge.common.config.ConfigManager;
-import net.minecraftforge.fml.client.event.ConfigChangedEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.config.ModConfig.Type;
+import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
-@Config(modid = ResearchTable.MODID)
-@Mod.EventBusSubscriber(modid = ResearchTable.MODID)
+@EventBusSubscriber(modid = ResearchTable.MODID)
 public final class ModConfig {
+	public static final ModConfigSpec SPEC;
+	private static final ModConfigSpec.BooleanValue GUI_FULL_SCREEN;
+	private static final ModConfigSpec.IntValue GUI_HEIGHT;
+	private static final ModConfigSpec.IntValue GUI_LIST_WIDTH;
+	private static final ModConfigSpec.BooleanValue GUI_LIST_AUTO_WIDTH;
+	private static final ModConfigSpec.IntValue GUI_DETAIL_WIDTH;
+	private static final ModConfigSpec.BooleanValue HIDE_UNAVAILABLE_RESEARCH;
+	private static final ModConfigSpec.BooleanValue HIDE_COMPLETED_RESEARCH;
+	private static final ModConfigSpec.BooleanValue NON_PRIVILEGED_MODE;
+
+	public static boolean guiFullScreen = true;
+	public static int guiHeight = 158;
+	public static int guiListWidth = 100;
+	public static boolean guiListAutoWidth = true;
+	public static int guiDetailWidth = 150;
+	public static boolean hideUnavailableResearch = false;
+	public static boolean hideCompletedResearch = false;
+	public static boolean nonPrivilegedMode = false;
+
+	static {
+		ModConfigSpec.Builder b = new ModConfigSpec.Builder();
+		GUI_FULL_SCREEN = b.define("guiFullScreen", true);
+		GUI_HEIGHT = b.defineInRange("guiHeight", 158, 1, Integer.MAX_VALUE);
+		GUI_LIST_WIDTH = b.defineInRange("guiListWidth", 100, 1, Integer.MAX_VALUE);
+		GUI_LIST_AUTO_WIDTH = b.define("guiListAutoWidth", true);
+		GUI_DETAIL_WIDTH = b.defineInRange("guiDetailWidth", 150, 1, Integer.MAX_VALUE);
+		HIDE_UNAVAILABLE_RESEARCH = b.define("hideUnavailableResearch", false);
+		HIDE_COMPLETED_RESEARCH = b.define("hideCompletedResearch", false);
+		NON_PRIVILEGED_MODE = b.comment(
+				"If enabled, the player will execute the rewarded command as if he is executing the command on his own. "
+						+ "Use this option if you encountered issue with a certain permission management system.")
+				.define("nonPrivilegedCommandReward", false);
+		SPEC = b.build();
+	}
+
 	private ModConfig() {
-		throw new UnsupportedOperationException("No instance for you");
+	}
+
+	public static void register(ModContainer container) {
+		container.registerConfig(Type.COMMON, SPEC);
 	}
 
 	@SubscribeEvent
-	public static void onConfigReload(ConfigChangedEvent.OnConfigChangedEvent event) {
-		if (event.getModID().equals(ResearchTable.MODID)) {
-			ConfigManager.sync(ResearchTable.MODID, Config.Type.INSTANCE);
+	public static void onConfigLoad(ModConfigEvent.Loading event) {
+		if (event.getConfig().getSpec() == SPEC) {
+			sync();
 		}
 	}
 
-	@Config.Name("RenderLayer")
-	public static BlockRenderLayer renderLayer = BlockRenderLayer.CUTOUT_MIPPED;
+	@SubscribeEvent
+	public static void onConfigReload(ModConfigEvent.Reloading event) {
+		if (event.getConfig().getSpec() == SPEC) {
+			sync();
+		}
+	}
 
-	@Config.Name("GuiFullScreen")
-	public static boolean guiFullScreen = true;
-
-	@Config.Name("GuiHeight")
-	public static int guiHeight = 158;
-
-	@Config.Name("GuiListWidth")
-	public static int guiListWidth = 100;
-
-	@Config.Name("GuiListAutoWidth")
-	public static boolean guiListAutoWidth = true;
-
-	@Config.Name("GuiDetailWidth")
-	public static int guiDetailWidth = 150;
-
-	@Config.Name("HideUnavailableResearch")
-	public static boolean hideUnavailableResearch = false;
-
-	@Config.Name("HideCompletedResearch")
-	public static boolean hideCompletedResearch = false;
-
-	@Config.Comment(
-		"If enabled, the player will execute the rewarded command as if he is executing the command on his own. " + "Use this option if you encountered issue with a certain permission management system."
-	)
-	@Config.Name("NonPrivilegedCommandReward")
-	public static boolean nonPrivilegedMode = false;
+	private static void sync() {
+		guiFullScreen = GUI_FULL_SCREEN.get();
+		guiHeight = GUI_HEIGHT.get();
+		guiListWidth = GUI_LIST_WIDTH.get();
+		guiListAutoWidth = GUI_LIST_AUTO_WIDTH.get();
+		guiDetailWidth = GUI_DETAIL_WIDTH.get();
+		hideUnavailableResearch = HIDE_UNAVAILABLE_RESEARCH.get();
+		hideCompletedResearch = HIDE_COMPLETED_RESEARCH.get();
+		nonPrivilegedMode = NON_PRIVILEGED_MODE.get();
+	}
 }

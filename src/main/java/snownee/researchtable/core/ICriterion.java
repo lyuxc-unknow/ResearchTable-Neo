@@ -1,13 +1,12 @@
 package snownee.researchtable.core;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.player.Player;
 
 public interface ICriterion {
-	boolean matches(EntityPlayer player, NBTTagCompound data);
+	boolean matches(Player player, CompoundTag data);
 
-	@SideOnly(Side.CLIENT)
-	String getFailingText(EntityPlayer player, NBTTagCompound data);
+	String getFailingText(Player player, CompoundTag data);
+
+	CriterionType<? extends ICriterion> getType();
 }

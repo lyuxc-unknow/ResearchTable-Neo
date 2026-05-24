@@ -1,5 +1,7 @@
 package snownee.researchtable.plugin.reskillable;
 
+
+/* === DISABLED DURING NEOFORGE 1.21.1 MIGRATION ===
 import codersafterdark.reskillable.api.skill.Skill;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -35,3 +37,5 @@ public class CriterionSkill implements ICriterion {
 	}
 
 }
+
+=== END DISABLED === */

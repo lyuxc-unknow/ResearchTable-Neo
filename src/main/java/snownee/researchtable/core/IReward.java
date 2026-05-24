@@ -1,9 +1,9 @@
 package snownee.researchtable.core;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 
 public interface IReward {
-	void earn(World world, BlockPos pos, EntityPlayer player);
+	void earn(Level world, BlockPos pos, Player player);
 }

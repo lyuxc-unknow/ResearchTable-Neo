@@ -1,15 +1,17 @@
 package snownee.researchtable.core;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.Set;
 
-import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import snownee.kiwi.util.Util;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import snownee.researchtable.ResearchTable;
 
 public class CriterionResearches implements ICriterion {
@@ -22,7 +24,7 @@ public class CriterionResearches implements ICriterion {
 	}
 
 	@Override
-	public boolean matches(EntityPlayer player, NBTTagCompound data) {
+	public boolean matches(Player player, CompoundTag data) {
 		int c = 0;
 		for (String research : researches) {
 			if (DataStorage.count(player.getGameProfile().getId(), research) > 0) {
@@ -33,31 +35,48 @@ public class CriterionResearches implements ICriterion {
 	}
 
 	@Override
-	@SideOnly(Side.CLIENT)
-	public String getFailingText(EntityPlayer player, NBTTagCompound data) {
-		String string = "";
+	public String getFailingText(Player player, CompoundTag data) {
+		StringBuilder sb = new StringBuilder();
 		boolean first = true;
 		for (String research : researches) {
 			Optional<Research> result = ResearchList.find(research);
-			if (!result.isPresent())
+			if (result.isEmpty())
 				continue;
 			if (!first) {
-				string += Util.color(0) + ", ";
+				sb.append(ChatFormatting.RESET).append(", ");
 			}
 			first = false;
 			if (DataStorage.count(player.getGameProfile().getId(), research) == 0) {
-				string += Util.color(0xFFFF0000);
+				sb.append(ChatFormatting.RED);
 			}
-			string += result.get().getTitle();
+			sb.append(result.get().getTitle());
 		}
-		string += TextFormatting.RESET;
+		sb.append(ChatFormatting.RESET);
+		String string = sb.toString();
 		if (r == researches.size()) {
-			string = I18n.format(ResearchTable.MODID + ".gui.requiredResearch", string);
+			string = I18n.get(ResearchTable.MODID + ".gui.requiredResearch", string);
 		} else {
-			string = I18n.format(ResearchTable.MODID + ".gui.optionalResearch", string);
-			string += I18n.format(ResearchTable.MODID + ".gui.of", r, researches.size());
+			string = I18n.get(ResearchTable.MODID + ".gui.optionalResearch", string);
+			string += I18n.get(ResearchTable.MODID + ".gui.of", r, researches.size());
 		}
 		return string;
 	}
 
+	public static final CriterionType<CriterionResearches> TYPE = CriterionType.register(
+			ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "researches"),
+			(buf, c) -> {
+				ByteBufCodecs.collection(ArrayList::new, ByteBufCodecs.STRING_UTF8).encode(buf, new ArrayList<>(c.researches));
+				buf.writeVarInt(c.r);
+			},
+			buf -> {
+				ArrayList<String> list = ByteBufCodecs.collection(ArrayList::new, ByteBufCodecs.STRING_UTF8).decode(buf);
+				Set<String> set = new LinkedHashSet<>(list);
+				int r = buf.readVarInt();
+				return new CriterionResearches(set, r);
+			});
+
+	@Override
+	public CriterionType<CriterionResearches> getType() {
+		return TYPE;
+	}
 }

@@ -1,270 +1,700 @@
 package snownee.researchtable.client.gui;
 
-import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.IllegalFormatException;
 import java.util.List;
 
-import net.minecraft.client.audio.PositionedSoundRecord;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.init.SoundEvents;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import snownee.kiwi.client.AdvancedFontRenderer;
-import snownee.kiwi.client.gui.GuiContainerMod;
-import snownee.kiwi.client.gui.GuiControl;
-import snownee.kiwi.client.gui.component.Component;
-import snownee.kiwi.client.gui.component.ComponentPanel;
-import snownee.kiwi.client.gui.element.DrawableResource;
-import snownee.kiwi.util.NBTHelper;
+import org.jetbrains.annotations.NotNull;
+
+import com.mojang.blaze3d.systems.RenderSystem;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.entity.player.Inventory;
+import net.neoforged.neoforge.network.PacketDistributor;
 import snownee.researchtable.ModConfig;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.block.TileTable;
+import snownee.researchtable.client.renderer.ConditionRenderer;
 import snownee.researchtable.container.ContainerTable;
+import snownee.researchtable.core.ConditionTypes;
+import snownee.researchtable.core.DataStorage;
+import snownee.researchtable.core.ICondition;
+import snownee.researchtable.core.ICriterion;
 import snownee.researchtable.core.Research;
+import snownee.researchtable.core.ResearchCategory;
 import snownee.researchtable.core.ResearchList;
-import snownee.researchtable.network.NetworkChannel;
 import snownee.researchtable.network.PacketResearchChanged;
 import snownee.researchtable.network.PacketResearchChanged.Action;
 
-@SideOnly(Side.CLIENT)
-public class GuiTable extends GuiContainerMod {
-	public static float ticks;
-	public static NBTTagCompound data;
-	private final TileTable table;
-	private ComponentResearchDetail detail;
-	private ComponentResearchList researchList;
-	private DrawableResource globe;
-	private List<String> scoreText;
-	private int listWidth = ModConfig.guiListWidth;
+public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 
-	public GuiTable(TileTable tile, InventoryPlayer inventory) {
-		super(new ContainerTable(tile, inventory));
-		this.table = tile;
-		data = table.getData();
-		fontRenderer = AdvancedFontRenderer.INSTANCE;
-		AdvancedFontRenderer.INSTANCE.setUnicodeFlag(true);
+	private static final ResourceLocation GLOBE = ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "textures/gui/globe.png");
+	// 3 separate PNGs at the same pixel size as the button (default 80x20).
+	// Drop in PNGs at these paths to override the vanilla button look.
+	private static final ResourceLocation BUTTON_NORMAL = ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "textures/gui/button_normal.png");
+	private static final ResourceLocation BUTTON_HOVERED = ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "textures/gui/button_hovered.png");
+	private static final ResourceLocation BUTTON_DISABLED = ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "textures/gui/button_disabled.png");
+
+	public static CompoundTag data = new CompoundTag();
+
+	private final List<Research> researches = new ArrayList<>();
+	private ResearchCategory currentCategory;
+	private Research selected;
+	private int scroll;
+	private int descScroll;
+	private int conditionScroll;
+	private final int slotHeight = 20;
+	private static final int CONDITION_ROW_HEIGHT = 24;
+	private static final int MAX_VISIBLE_CONDITIONS = 3;
+	private int listWidth;
+	private int detailWidth;
+	private List<Component> scoreText;
+
+	// Layout state computed each frame for click/scroll hit-testing
+	private int descViewportLeft;
+	private int descViewportRight;
+	private int descViewportTop;
+	private int descViewportHeight;
+	private int descContentHeight;
+	private int condViewportLeft;
+	private int condViewportRight;
+	private int condViewportTop;
+	private int condViewportHeight;
+	private int condContentHeight;
+
+	private TexturedButton submitButton;
+	private TexturedButton actionButton;
+	private int lastSeenResearchListVersion = -1;
+
+	public GuiTable(ContainerTable menu, Inventory inventory, Component title) {
+		super(menu, inventory, title);
+		this.imageWidth = 0;
+		this.imageHeight = 0;
+		this.listWidth = ModConfig.guiListWidth;
 		if (ModConfig.guiListAutoWidth) {
-			int titleWidth = ResearchList.LIST.values().stream().map(Research::getTitle).mapToInt(fontRenderer::getStringWidth).max().orElse(0);
+			int titleWidth = ResearchList.LIST.values().stream()
+					.map(Research::getTitle)
+					.mapToInt(s -> Minecraft.getInstance().font.width(s))
+					.max().orElse(0);
 			listWidth = Math.max(listWidth, 40 + titleWidth);
 		}
-	}
-
-	@Override
-	public void initGui() {
-		int guiDetailWidth;
-		if (ModConfig.guiFullScreen) {
-			xSize = width + 8;
-			ySize = height + 8;
-			guiDetailWidth = width - listWidth;
-		} else {
-			guiDetailWidth = ModConfig.guiDetailWidth;
-			xSize = listWidth + guiDetailWidth + 8;
-			ySize = ModConfig.guiHeight;
+		TileTable t = menu.getTile();
+		if (t != null) {
+			data = t.getData();
 		}
-
-		data = table.getData();
-		super.initGui();
-		ComponentPanel panel = new ComponentPanel(control, xSize, ySize);
-		boolean showTabs = ResearchList.CATEGORIES.size() > 1;
-		researchList = new ComponentResearchList(panel.control, listWidth, ySize - 8, 0, 0, 20, width, height, showTabs);
-		// ResearchList.LIST.clear();
-		//        int r = new Random().nextInt(6) + 1;
-		//        List<ICondition> conditions = new ArrayList<>(8);
-		//        conditions.add(new ConditionCrTStack(CraftTweakerMC.getOreDict("blockGlass").amount(1000)));
-		//        for (int i = 0; i < r; i++)
-		//        {
-		//            conditions.add(new ConditionCrTStack(CraftTweakerMC.getIItemStack(new ItemStack(Items.CLAY_BALL, 256))));
-		//        }
-		//        ResearchList.LIST.add(new Research("hello", ResearchCategory.GENERAL, "hello", "������",
-		//                ImmutableSet.of("stageA", "stageB"), Collections.EMPTY_LIST, conditions, null));
 		if (!ResearchList.CATEGORIES.isEmpty()) {
-			researchList.setCategory(ResearchList.CATEGORIES.get(0));
-		}
-		if (showTabs) {
-			guiDetailWidth -= ComponentResearchList.TAB_WIDTH;
-		}
-		Research displaying = null;
-		if (detail != null) {
-			displaying = detail.getResearch();
-		}
-		detail = new ComponentResearchDetail(panel.control, guiDetailWidth, ySize - 8, researchList.left + listWidth, 0, width, height);
-		detail.visible = false;
-		detail.researching = table.getResearch();
-		if (displaying != null) {
-			detail.setResearch(displaying, table.canComplete());
-			table.hasChanged = true;
-		} else if (detail.researching != null) {
-			detail.setResearch(detail.researching, table.canComplete());
-			table.hasChanged = true;
-		}
-		control.addComponent(panel);
-		panel.control.addComponent(researchList);
-		panel.control.addComponent(detail);
-
-		if (ResearchTable.scoreFormattingText != null) {
-			boolean failed = false;
-			Integer[] values = new Integer[ResearchTable.scores.length];
-			int i = 0;
-			NBTHelper helper = NBTHelper.of(data);
-			for (String s : ResearchTable.scores) {
-				values[i] = helper.getInt("score." + s, 0);
-				++i;
-			}
-			if (!failed) {
-				String string = ResearchTable.scoreFormattingText;
-				if (I18n.hasKey(string)) {
-					string = I18n.format(ResearchTable.scoreFormattingText, (Object[]) values);
-				} else {
-					try {
-						string = String.format(ResearchTable.scoreFormattingText, (Object[]) values);
-					} catch (IllegalFormatException var5) {
-						string = "Format error: " + string;
-					}
-				}
-				scoreText = Arrays.asList(string.split("\\n"));
-				globe = new DrawableResource(new ResourceLocation(ResearchTable.MODID, "textures/gui/globe.png"), 0, 0, 11, 10, 0, 0, 0, 0, 11, 10);
-			}
+			this.currentCategory = ResearchList.CATEGORIES.getFirst();
 		}
 	}
 
 	@Override
-	protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
-		super.mouseClicked(mouseX, mouseY, mouseButton);
-	}
-
-	@Override
-	protected void mouseReleased(int mouseX, int mouseY, int state) {
-		super.mouseReleased(mouseX, mouseY, state);
-	}
-
-	@Override
-	protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
-	}
-
-	@Override
-	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-		if (!GuiScreen.isCtrlKeyDown()) {
-			ticks += partialTicks;
+	protected void init() {
+		if (ModConfig.guiFullScreen) {
+			imageWidth = width;
+			imageHeight = height;
+			detailWidth = width - listWidth;
+		} else {
+			detailWidth = ModConfig.guiDetailWidth;
+			imageWidth = listWidth + detailWidth + 8;
+			imageHeight = ModConfig.guiHeight;
 		}
-		if (table.hasChanged) {
-			data = table.getData();
-			if (detail != null) {
-				detail.researching = table.getResearch();
-				detail.updateResearching(table.canComplete());
-				researchList.setCategory(researchList.category);
-				if (detail.getResearch() != null) {
-					List<ComponentResearchProgress> progresses = detail.control.getComponents(ComponentResearchProgress.class);
-					boolean flag = table.getResearch() == detail.getResearch();
-					for (int i = 0; i < progresses.size(); ++i) {
-						ComponentResearchProgress progress = progresses.get(i);
-						progress.setProgress(flag ? table.getProgress(i) : 0);
-						progress.setResearching(flag);
-					}
-				}
-			}
-			table.hasChanged = false;
-		}
-		drawScreenInternal(mouseX, mouseY, partialTicks);
-		if (globe != null && scoreText != null) {
-			GlStateManager.color(1, 1, 1, 1);
-			RenderHelper.enableGUIStandardItemLighting();
-			int x = (width + xSize) / 2 - 18;
-			int y = (height + ySize) / 2 - 18;
-			globe.draw(mc, x, y);
-			if (isInRegion(x, y, x + 11, y + 11, mouseX, mouseY)) {
-				drawHoveringText(scoreText, mouseX, mouseY);
-			}
-		}
+		super.init();
+
+		lastSeenResearchListVersion = ResearchList.clientVersion;
+		updateResearchList();
+
+		submitButton = addRenderableWidget(new TexturedButton(-200, -200, 80, 20,
+				Component.translatable(ResearchTable.MODID + ".gui.button.submit"),
+				b -> onSubmit(),
+				BUTTON_NORMAL, BUTTON_HOVERED, BUTTON_DISABLED));
+		actionButton = addRenderableWidget(new TexturedButton(-200, -200, 80, 20,
+				Component.translatable(ResearchTable.MODID + ".gui.button.research"),
+				b -> onAction(),
+				BUTTON_NORMAL, BUTTON_HOVERED, BUTTON_DISABLED));
+
+		buildScoreText();
+		refreshButtons();
 	}
 
-	private void drawScreenInternal(int mouseX, int mouseY, float partialTicks) {
-		this.drawDefaultBackground();
-		control.drawScreen(mouseX, mouseY, partialTicks);
-		super.drawScreen(mouseX, mouseY, partialTicks);
-		if (tooltip != null && !tooltip.isEmpty()) {
-			if (tooltipFont == null) {
-				tooltipFont = fontRenderer;
-			}
-			drawHoveringText(tooltip, mouseX, mouseY, tooltipFont);
-		}
-		this.tooltip = null;
-		this.tooltipFont = null;
-	}
-
-	public static boolean isInRegion(int left, int top, int right, int bottom, int x, int y) {
-		return x >= left && x < right && y >= top && y < bottom;
-	}
-
-	@Override
-	public int messageReceived(GuiControl control, Component component, NBTTagCompound data) {
-		return 0;
-	}
-
-	@Override
-	public int messageReceived(GuiControl control, Component component, int param1, int param2) {
-		if (component.getClass() == ComponentButtonList.class) {
-			if (!table.hasPermission(mc.player)) {
-				return 0;
-			}
-			mc.getSoundHandler().playSound(PositionedSoundRecord.getMasterRecord(SoundEvents.UI_BUTTON_CLICK, 1.0F));
-			if (param1 == 0) // param1 == button id
-			{
-				if (table.getResearch() == detail.getResearch()) {
-					PacketResearchChanged packet = new PacketResearchChanged(table.getPos(), table.getResearch(), Action.SUBMIT);
-					NetworkChannel.INSTANCE.sendToServer(packet);
-				}
-			} else if (param1 == 1) // param1 == button id
-			{
-				if (table.getResearch() == null) // no research doing
-				{
-					if (detail.getResearch() != null) {
-						PacketResearchChanged packet = new PacketResearchChanged(table.getPos(), detail.getResearch(), Action.START);
-						NetworkChannel.INSTANCE.sendToServer(packet);
-						return 0;
-					}
-				} else {
-					if (detail.getResearch() == table.getResearch()) {
-						Action action = table.canComplete() ? Action.COMPLETE : Action.STOP;
-						if (action == Action.STOP && !GuiScreen.isShiftKeyDown()) {
-							return 0;
-						}
-						PacketResearchChanged packet = new PacketResearchChanged(table.getPos(), table.getResearch(), action);
-						NetworkChannel.INSTANCE.sendToServer(packet);
-						return 0;
-					}
-				}
-			}
-		} else if (component.getClass() == ComponentResearchList.class) {
-			if (detail != null) {
-				detail.setResearch(researchList.researches.get(param1), table.canComplete()); // param1 == index
-				table.hasChanged = true;
-			}
-		}
-		return 0;
-	}
-
-	public void resetProgress() {
-		if (detail == null)
+	private void buildScoreText() {
+		if (ResearchTable.scoreFormattingText == null || ResearchTable.scores == null) {
 			return;
-		List<ComponentResearchProgress> components = detail.control.getComponents(ComponentResearchProgress.class);
-		for (ComponentResearchProgress component : components) {
-			component.resetRenderer();
+		}
+		Integer[] values = new Integer[ResearchTable.scores.length];
+		int i = 0;
+		for (String s : ResearchTable.scores) {
+			values[i] = data.contains("score." + s) ? data.getInt("score." + s) : 0;
+			++i;
+		}
+		String string = ResearchTable.scoreFormattingText;
+		if (I18n.exists(string)) {
+			string = I18n.get(ResearchTable.scoreFormattingText, (Object[]) values);
+		} else {
+			try {
+				string = String.format(ResearchTable.scoreFormattingText, (Object[]) values);
+			} catch (IllegalFormatException ex) {
+				string = "Format error: " + string;
+			}
+		}
+		scoreText = new ArrayList<>();
+		for (String line : string.split("\\n")) {
+			scoreText.add(Component.literal(line));
+		}
+	}
+
+	private void updateResearchList() {
+		researches.clear();
+		if (currentCategory == null) {
+			return;
+		}
+		List<Research> available = new ArrayList<>();
+		List<Research> unavailable = new ArrayList<>();
+		List<Research> completed = new ArrayList<>();
+		for (Research research : ResearchList.LIST.values()) {
+			if (research.getCategory() != currentCategory) {
+				continue;
+			}
+			if (research.canResearch(minecraft.player, data)) {
+				available.add(research);
+			} else if (DataStorage.count(minecraft.player.getGameProfile().getId(), research) > 0) {
+				if (!ModConfig.hideCompletedResearch) {
+					completed.add(research);
+				}
+			} else if (!ModConfig.hideUnavailableResearch) {
+				unavailable.add(research);
+			}
+		}
+		researches.addAll(available);
+		researches.addAll(unavailable);
+		researches.addAll(completed);
+	}
+
+	private void onSubmit() {
+		TileTable tile = menu.getTile();
+		if (tile == null || selected == null) {
+			return;
+		}
+		if (tile.getResearch() == selected) {
+			playClick();
+			PacketDistributor.sendToServer(new PacketResearchChanged(tile.getBlockPos(), selected.getName(), Action.SUBMIT));
+		}
+	}
+
+	private void onAction() {
+		TileTable tile = menu.getTile();
+		if (tile == null || selected == null) {
+			return;
+		}
+		playClick();
+		if (tile.getResearch() == null) {
+			PacketDistributor.sendToServer(new PacketResearchChanged(tile.getBlockPos(), selected.getName(), Action.START));
+		} else if (tile.getResearch() == selected) {
+			if (tile.canComplete()) {
+				PacketDistributor.sendToServer(new PacketResearchChanged(tile.getBlockPos(), selected.getName(), Action.COMPLETE));
+			} else if (Screen.hasShiftDown()) {
+				PacketDistributor.sendToServer(new PacketResearchChanged(tile.getBlockPos(), selected.getName(), Action.STOP));
+			}
+		}
+	}
+
+	private void playClick() {
+		minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+	}
+
+	private void refreshButtons() {
+		TileTable tile = menu.getTile();
+		if (tile == null || selected == null) {
+			submitButton.visible = false;
+			actionButton.visible = false;
+			actionButton.setTooltip(null);
+			return;
+		}
+		Research researching = tile.getResearch();
+		if (researching == selected) {
+			boolean canComplete = tile.canComplete();
+			submitButton.visible = !canComplete;
+			submitButton.active = !canComplete;
+			actionButton.visible = true;
+			actionButton.active = true;
+			actionButton.setMessage(Component.translatable(ResearchTable.MODID + ".gui.button." + (canComplete ? "complete" : "cancel")));
+			// In the "cancel" state the click only fires while Shift is held (see onAction);
+			// the tooltip surfaces that hidden requirement.
+			actionButton.setTooltip(canComplete ? null : Tooltip.create(Component.translatable(ResearchTable.MODID + ".gui.button.shift")));
+		} else if (researching == null) {
+			submitButton.visible = false;
+			actionButton.visible = true;
+			actionButton.active = selected.canResearch(minecraft.player, data);
+			actionButton.setMessage(Component.translatable(ResearchTable.MODID + ".gui.button.research"));
+			actionButton.setTooltip(null);
+		} else {
+			submitButton.visible = false;
+			actionButton.visible = false;
+			actionButton.setTooltip(null);
 		}
 	}
 
 	@Override
-	public void onGuiClosed() {
-		researchList = null;
-		detail = null;
-		data = null;
-		super.onGuiClosed();
+	public void containerTick() {
+		super.containerTick();
+		// If the server pushed a new snapshot (player join / post-reload), our `selected` and
+		// `currentCategory` may now reference dead objects. Drop them and rebuild the list.
+		if (ResearchList.clientVersion != lastSeenResearchListVersion) {
+			lastSeenResearchListVersion = ResearchList.clientVersion;
+			if (selected != null && !ResearchList.LIST.containsKey(selected.getName())) {
+				selected = null;
+				descScroll = 0;
+				conditionScroll = 0;
+			}
+			if (currentCategory == null || !ResearchList.CATEGORIES.contains(currentCategory)) {
+				currentCategory = ResearchList.CATEGORIES.isEmpty() ? null : ResearchList.CATEGORIES.getFirst();
+			}
+			updateResearchList();
+			buildScoreText();
+			refreshButtons();
+		}
+		TileTable tile = menu.getTile();
+		if (tile != null && tile.hasChanged) {
+			data = tile.getData();
+			updateResearchList();
+			refreshButtons();
+			tile.hasChanged = false;
+		}
 	}
 
+	@Override
+	protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
+		// Fill the whole screen with a soft gray that's slightly darker than the left sidebar (0xEEEEEE).
+		graphics.fill(0, 0, width, height, 0xFFD8D8D8);
+	}
+
+	@Override
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		// 1. Compute detail-panel layout & reposition button widgets BEFORE super.render
+		positionButtons();
+		// 2. Vanilla dim + renderBg + widget rendering (including our repositioned buttons)
+		this.renderBackground(graphics, mouseX, mouseY, partialTick);
+		super.render(graphics, mouseX, mouseY, partialTick);
+		// 3. Custom overlays (lists, detail panel content, tabs, globe)
+		renderLeftList(graphics, mouseX, mouseY);
+		renderDetail(graphics, mouseX, mouseY);
+		renderTabs(graphics, mouseX, mouseY);
+		renderScoreGlobe(graphics, mouseX, mouseY);
+	}
+
+	private void positionButtons() {
+		if (selected == null) {
+			submitButton.visible = false;
+			actionButton.visible = false;
+			return;
+		}
+		int leftPanel = ((ResearchList.CATEGORIES.size() > 1) ? 24 : 0) + listWidth + 4;
+		int rightPanel = leftPanel + detailWidth - 8;
+		int contentWidth = rightPanel - leftPanel;
+
+		refreshButtons();
+
+		// Layout order: title → description → conditions → failing → buttons.
+		// Same recipe is used in renderDetail; keep them in sync.
+		int top = 4 + 14; // after title
+		top += descriptionViewportHeight(contentWidth) + 4;
+		top += Math.min(selected.getConditions().size(), MAX_VISIBLE_CONDITIONS) * CONDITION_ROW_HEIGHT + 4;
+		int failingH = failingTextsHeight(contentWidth);
+		top += failingH;
+		if (failingH > 0) {
+			top += 4;
+		}
+
+		int buttonRowTop = top;
+		int gap = 4;
+		int totalWidth = 0;
+		if (submitButton.visible) totalWidth += submitButton.getWidth();
+		if (actionButton.visible) totalWidth += actionButton.getWidth();
+		if (submitButton.visible && actionButton.visible) totalWidth += gap;
+		int bx = rightPanel - totalWidth;
+		if (submitButton.visible) {
+			submitButton.setX(bx);
+			submitButton.setY(buttonRowTop);
+			bx += submitButton.getWidth() + gap;
+		}
+		if (actionButton.visible) {
+			actionButton.setX(bx);
+			actionButton.setY(buttonRowTop);
+		}
+	}
+
+	/**
+	 * Height reserved for the failing/limit text block at the bottom of the detail panel.
+	 * Returns 0 when the section isn't shown (player is researching this or it's available).
+	 */
+	private int failingTextsHeight(int contentWidth) {
+		if (selected == null) {
+			return 0;
+		}
+		TileTable tile = menu.getTile();
+		Research researching = tile != null ? tile.getResearch() : null;
+		if (researching == selected || selected.canResearch(minecraft.player, data)) {
+			return 0;
+		}
+		int h = 0;
+		for (ICriterion criterion : selected.getCriteria()) {
+			if (criterion.matches(minecraft.player, data)) continue;
+			String failingText = criterion.getFailingText(minecraft.player, data);
+			List<FormattedCharSequence> lines = font.split(Component.literal(failingText), contentWidth);
+			h += lines.size() * font.lineHeight;
+		}
+		return h;
+	}
+
+	/**
+	 * Description fills whatever vertical room is left after title, conditions, failing, and
+	 * buttons claim their share. Always non-negative; floors to 0 if the window is too short.
+	 */
+	private int descriptionViewportHeight(int contentWidth) {
+		if (selected == null) {
+			return 0;
+		}
+		int titleH = 14;
+		int condsH = Math.min(selected.getConditions().size(), MAX_VISIBLE_CONDITIONS) * CONDITION_ROW_HEIGHT;
+		int failingH = failingTextsHeight(contentWidth);
+		boolean btn = (submitButton != null && (submitButton.visible || actionButton.visible));
+		int btnH = btn ? 22 : 0;
+		int padding = 4 /* top */ + 4 /* after desc */ + 4 /* after conds */ + (failingH > 0 ? 4 : 0) + 4 /* bottom */;
+		int reserved = titleH + condsH + failingH + btnH + padding;
+		return Math.max(0, height - reserved);
+	}
+
+	private void renderTabs(GuiGraphics g, int mouseX, int mouseY) {
+		if (ResearchList.CATEGORIES.size() <= 1) {
+			return;
+		}
+		int x = 2;
+		int y = 2;
+		for (ResearchCategory category : ResearchList.CATEGORIES) {
+			int bg = (category == currentCategory) ? 0xFFEEEEEE : 0xFF333333;
+			g.fill(x, y, x + 20, y + 20, bg);
+			g.renderItem(category.icon, x + 2, y + 2);
+			if (mouseX >= x && mouseX < x + 20 && mouseY >= y && mouseY < y + 20) {
+				if (category.nameKey != null) {
+					g.renderTooltip(font, Component.translatable(category.nameKey), mouseX, mouseY);
+				}
+			}
+			y += 22;
+		}
+	}
+
+	private void renderLeftList(GuiGraphics g, int mouseX, int mouseY) {
+		int left = (ResearchList.CATEGORIES.size() > 1) ? 24 : 0;
+		int top = 0;
+		int right = left + listWidth;
+		int bottom = height;
+		g.fill(left, top, right, bottom, 0xFFEEEEEE);
+
+		int y = top + 4 - scroll;
+		for (int i = 0; i < researches.size(); ++i) {
+			Research r = researches.get(i);
+			int slotTop = y + i * slotHeight;
+			if (slotTop + slotHeight < 0 || slotTop > height) {
+				continue;
+			}
+			boolean hover = mouseX >= left && mouseX < right && mouseY >= slotTop && mouseY < slotTop + slotHeight;
+			boolean isSelected = r == selected;
+			int color = isSelected ? 0xFFCCCCFF : hover ? 0xFFDDDDDD : 0xFFEEEEEE;
+			g.fill(left, slotTop, right, slotTop + slotHeight - 1, color);
+			g.renderItem(r.getIcon(), left + 2, slotTop + 2);
+			String title = r.getTitle();
+			boolean dim = !r.canResearch(minecraft.player, data);
+			int textColor = dim ? 0x808080 : 0x000000;
+			g.drawString(font, title, left + 22, slotTop + 6, textColor, false);
+		}
+	}
+
+	private void renderDetail(GuiGraphics g, int mouseX, int mouseY) {
+		int leftPanel = ((ResearchList.CATEGORIES.size() > 1) ? 24 : 0) + listWidth + 4;
+		int rightPanel = leftPanel + detailWidth - 8;
+		int contentWidth = rightPanel - leftPanel;
+		int top = 4;
+		if (selected == null) {
+			descViewportHeight = 0;
+			condViewportHeight = 0;
+			return;
+		}
+
+		// Title
+		g.drawString(font, Component.literal(selected.getTitle()), leftPanel, top, 0x202020, false);
+		top += 14;
+
+		// Description (scrollable) — sized to absorb remaining vertical space.
+		int descHeight = descriptionViewportHeight(contentWidth);
+		renderScrollableDescription(g, leftPanel, top, rightPanel, descHeight, mouseX, mouseY);
+		top += descHeight + 4;
+
+		// Conditions (research requirements) — clipped to MAX_VISIBLE_CONDITIONS rows, extras scroll.
+		TileTable tile = menu.getTile();
+		Research researching = tile != null ? tile.getResearch() : null;
+		List<ICondition> conditions = selected.getConditions();
+		renderScrollableConditions(g, leftPanel, top, rightPanel, conditions, researching == selected, mouseX, mouseY);
+		int visibleConditions = Math.min(conditions.size(), MAX_VISIBLE_CONDITIONS);
+		top += visibleConditions * CONDITION_ROW_HEIGHT;
+		top += 4;
+
+		// Limit / failing texts — only when the player is not researching this one and the criteria block them.
+		if (researching != selected && !selected.canResearch(minecraft.player, data)) {
+			for (ICriterion criterion : selected.getCriteria()) {
+				if (criterion.matches(minecraft.player, data))
+					continue;
+				String failingText = criterion.getFailingText(minecraft.player, data);
+				List<FormattedCharSequence> lines = font.split(Component.literal(failingText), contentWidth);
+				for (FormattedCharSequence line : lines) {
+					g.drawString(font, line, leftPanel, top, 0xCC0000, false);
+					top += font.lineHeight;
+				}
+			}
+			top += 4;
+		}
+
+		// Buttons are positioned/rendered by super.render via positionButtons(); nothing else below.
+	}
+
+	private void renderScrollableConditions(GuiGraphics g, int leftPanel, int top, int rightPanel,
+			List<ICondition> conditions, boolean isResearching, int mouseX, int mouseY) {
+		int visibleRows = Math.min(conditions.size(), MAX_VISIBLE_CONDITIONS);
+		condViewportLeft = leftPanel;
+		condViewportRight = rightPanel;
+		condViewportTop = top;
+		condViewportHeight = visibleRows * CONDITION_ROW_HEIGHT;
+		condContentHeight = conditions.size() * CONDITION_ROW_HEIGHT;
+
+		boolean needsScrollbar = conditions.size() > MAX_VISIBLE_CONDITIONS;
+		int maxScroll = Math.max(0, condContentHeight - condViewportHeight);
+		if (conditionScroll < 0) conditionScroll = 0;
+		if (conditionScroll > maxScroll) conditionScroll = maxScroll;
+
+		if (condViewportHeight <= 0) {
+			return;
+		}
+
+		int scrollbarWidth = 4;
+		int conditionRight = needsScrollbar ? condViewportRight - scrollbarWidth - 4 : condViewportRight - 4;
+
+		g.enableScissor(condViewportLeft, condViewportTop, condViewportRight, condViewportTop + condViewportHeight);
+		int y = condViewportTop - conditionScroll;
+		for (int i = 0; i < conditions.size(); i++) {
+			if (y + CONDITION_ROW_HEIGHT >= condViewportTop && y <= condViewportTop + condViewportHeight) {
+				renderCondition(g, condViewportLeft, y, conditionRight, conditions.get(i), i, isResearching);
+			}
+			y += CONDITION_ROW_HEIGHT;
+		}
+		g.disableScissor();
+
+		if (needsScrollbar) {
+			int sbX = condViewportRight - scrollbarWidth;
+			g.fill(sbX, condViewportTop, sbX + scrollbarWidth, condViewportTop + condViewportHeight, 0xFFB0B0B0);
+			int thumbHeight = Math.max(20, condViewportHeight * condViewportHeight / condContentHeight);
+			int thumbY = condViewportTop + (maxScroll == 0 ? 0 : (condViewportHeight - thumbHeight) * conditionScroll / maxScroll);
+			g.fill(sbX, thumbY, sbX + scrollbarWidth, thumbY + thumbHeight, 0xFF707070);
+		}
+	}
+
+	private void renderScrollableDescription(GuiGraphics g, int leftPanel, int top, int rightPanel, int viewportHeight, int mouseX, int mouseY) {
+		descViewportLeft = leftPanel;
+		descViewportRight = rightPanel;
+		descViewportTop = top;
+		descViewportHeight = Math.max(0, viewportHeight);
+		if (descViewportHeight <= 0) {
+			return;
+		}
+
+		String desc = selected.getDescription();
+		if (desc == null || desc.isEmpty()) {
+			descContentHeight = 0;
+			return;
+		}
+
+		int scrollbarWidth = 4;
+		int textRight = rightPanel - scrollbarWidth - 4;
+		int textWidth = textRight - leftPanel;
+		List<FormattedCharSequence> lines = font.split(Component.literal(desc), textWidth);
+		descContentHeight = lines.size() * font.lineHeight;
+
+		int maxScroll = Math.max(0, descContentHeight - descViewportHeight);
+		if (descScroll < 0) descScroll = 0;
+		if (descScroll > maxScroll) descScroll = maxScroll;
+
+		g.enableScissor(descViewportLeft, descViewportTop, descViewportRight, descViewportTop + descViewportHeight);
+		int y = descViewportTop - descScroll;
+		for (FormattedCharSequence line : lines) {
+			if (y + font.lineHeight >= descViewportTop && y <= descViewportTop + descViewportHeight) {
+				g.drawString(font, line, descViewportLeft, y, 0x404040, false);
+			}
+			y += font.lineHeight;
+		}
+		g.disableScissor();
+
+		if (maxScroll > 0) {
+			int sbX = descViewportRight - scrollbarWidth;
+			g.fill(sbX, descViewportTop, sbX + scrollbarWidth, descViewportTop + descViewportHeight, 0xFFB0B0B0);
+			int thumbHeight = Math.max(20, descViewportHeight * descViewportHeight / descContentHeight);
+			int thumbY = descViewportTop + (descViewportHeight - thumbHeight) * descScroll / maxScroll;
+			g.fill(sbX, thumbY, sbX + scrollbarWidth, thumbY + thumbHeight, 0xFF707070);
+		}
+	}
+
+	private void renderCondition(GuiGraphics g, int left, int top, int right, ICondition condition, int idx, boolean isResearching) {
+		TileTable tile = menu.getTile();
+		long target = condition.getGoal();
+		long current = isResearching && tile != null ? tile.getProgress(idx) : 0;
+		int barRight = right;
+		// Track (slightly darker than panel) + outline
+		g.fill(left, top, barRight, top + 22, 0xFFC4C4C4);
+		g.fill(left, top, barRight, top + 1, 0xFFA8A8A8);
+		g.fill(left, top + 21, barRight, top + 22, 0xFFA8A8A8);
+		g.fill(left, top, left + 1, top + 22, 0xFFA8A8A8);
+		g.fill(barRight - 1, top, barRight, top + 22, 0xFFA8A8A8);
+		if (isResearching && target > 0) {
+			double progress = (double) current / (double) target;
+			progress = Math.clamp(progress, 0, 1);
+			int fillRight = left + (int) ((barRight - left) * progress);
+			g.fill(left + 1, top + 1, fillRight, top + 21, 0xFF7BC97B);
+			String pct = String.format("%d%%", (int) (progress * 100));
+			g.drawString(font, pct, barRight - font.width(pct) - 4, top + 7, 0x202020, false);
+		}
+
+		@SuppressWarnings({"rawtypes"})
+		ConditionRenderer renderer = ConditionRenderer.get(condition);
+		if (renderer != null) {
+			renderer.draw(g, minecraft, left + 3, top + 3);
+			String text = renderer.name();
+			if (isResearching) {
+				text += " (" + renderer.format(current) + "/" + renderer.format(target) + ")";
+			} else {
+				text += " (" + renderer.format(target) + ")";
+			}
+			g.drawString(font, text, left + 24, top + 7, 0x303030, false);
+		} else {
+			String name = describeCondition(condition);
+			g.drawString(font, name, left + 4, top + 7, 0x303030, false);
+		}
+	}
+
+	private String describeCondition(ICondition condition) {
+		String type;
+		if (condition.getMatchType() == ConditionTypes.ITEM) {
+			type = "Item";
+		} else if (condition.getMatchType() == ConditionTypes.FLUID) {
+			type = "Fluid";
+		} else if (condition.getMatchType() == ConditionTypes.ENERGY) {
+			type = I18n.get(ResearchTable.MODID + ".gui.fe");
+		} else {
+			type = condition.getClass().getSimpleName();
+		}
+		return type + " x " + condition.getGoal();
+	}
+
+	private void renderScoreGlobe(GuiGraphics g, int mouseX, int mouseY) {
+		if (scoreText == null || scoreText.isEmpty()) {
+			return;
+		}
+		int x = width - 18;
+		int y = height - 18;
+		RenderSystem.setShaderColor(1, 1, 1, 1);
+		g.blit(GLOBE, x, y, 0, 0, 11, 10, 11, 10);
+		if (mouseX >= x && mouseX <= x + 11 && mouseY >= y && mouseY <= y + 10) {
+			g.renderTooltip(font, scoreText, java.util.Optional.empty(), mouseX, mouseY);
+		}
+	}
+
+	@Override
+	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		if (button == 0) {
+			// Tab click
+			if (ResearchList.CATEGORIES.size() > 1) {
+				int x = 2, y = 2;
+				for (ResearchCategory cat : ResearchList.CATEGORIES) {
+					if (mouseX >= x && mouseX < x + 20 && mouseY >= y && mouseY < y + 20) {
+						currentCategory = cat;
+						updateResearchList();
+						playClick();
+						return true;
+					}
+					y += 22;
+				}
+			}
+			// List click
+			int left = (ResearchList.CATEGORIES.size() > 1) ? 24 : 0;
+			int right = left + listWidth;
+			if (mouseX >= left && mouseX < right) {
+				int y = 4 - scroll;
+				for (int i = 0; i < researches.size(); ++i) {
+					int slotTop = y + i * slotHeight;
+					if (mouseY >= slotTop && mouseY < slotTop + slotHeight) {
+						if (selected != researches.get(i)) {
+							selected = researches.get(i);
+							descScroll = 0;
+							conditionScroll = 0;
+						}
+						refreshButtons();
+						playClick();
+						return true;
+					}
+				}
+			}
+		}
+		return super.mouseClicked(mouseX, mouseY, button);
+	}
+
+	@Override
+	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		int left = (ResearchList.CATEGORIES.size() > 1) ? 24 : 0;
+		int right = left + listWidth;
+		if (mouseX >= left && mouseX < right) {
+			scroll -= (int) (scrollY * 12);
+			int maxScroll = Math.max(0, researches.size() * slotHeight + 8 - height);
+			scroll = Math.max(0, Math.min(maxScroll, scroll));
+			return true;
+		}
+		// Condition list scroll
+		if (condViewportHeight > 0
+				&& mouseX >= condViewportLeft && mouseX < condViewportRight
+				&& mouseY >= condViewportTop && mouseY < condViewportTop + condViewportHeight) {
+			conditionScroll -= (int) (scrollY * 12);
+			// Clamp happens in renderScrollableConditions each frame
+			return true;
+		}
+		// Description scroll
+		if (descViewportHeight > 0
+				&& mouseX >= descViewportLeft && mouseX < descViewportRight
+				&& mouseY >= descViewportTop && mouseY < descViewportTop + descViewportHeight) {
+			descScroll -= (int) (scrollY * 12);
+			// Clamp happens in renderScrollableDescription each frame
+			return true;
+		}
+		return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+	}
+
+	@Override
+	protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
+		// Disable default labels rendering.
+	}
+
+	@Override
+	public boolean isPauseScreen() {
+		return false;
+	}
+
+	@Override
+	public void removed() {
+		data = new CompoundTag();
+		super.removed();
+	}
 }

@@ -1,0 +1,27 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="All Rights Reserved"
+issueTrackerURL="https://github.com/Snownee/ResearchTable/issues"
+
+[[mods]]
+modId="researchtable"
+version="${mod_version}"
+displayName="ResearchTable"
+authors="Snownee"
+description='''
+A research/quest table mod.
+'''
+
+[[dependencies.researchtable]]
+modId="neoforge"
+type="required"
+versionRange="[${neoforge_version},)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.researchtable]]
+modId="minecraft"
+type="required"
+versionRange="[${minecraft_version},)"
+ordering="NONE"
+side="BOTH"

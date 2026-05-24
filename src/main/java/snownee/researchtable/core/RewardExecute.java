@@ -1,15 +1,15 @@
 package snownee.researchtable.core;
 
-import net.minecraft.command.ICommandSender;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.commands.CommandSource;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 import snownee.researchtable.ModConfig;
-
-import javax.annotation.Nullable;
 
 public class RewardExecute implements IReward {
 	private final String[] commands;
@@ -19,68 +19,28 @@ public class RewardExecute implements IReward {
 	}
 
 	@Override
-	public void earn(World world, BlockPos pos, EntityPlayer player) {
-		// Use player entity as ICommandSender directly if non-privileged mode is enabled.
-		// Used for a slightly better compatibility with permission management systems like FTBUtils.
-		ICommandSender sender = ModConfig.nonPrivilegedMode ? player : new PrivilegedPlayer(player);
+	public void earn(Level world, BlockPos pos, Player player) {
+		MinecraftServer server = player.getServer();
+		if (server == null) {
+			return;
+		}
+		CommandSourceStack source;
+		if (ModConfig.nonPrivilegedMode) {
+			source = player.createCommandSourceStack();
+		} else {
+			source = new CommandSourceStack(
+					CommandSource.NULL,
+					Vec3.atCenterOf(pos),
+					Vec2.ZERO,
+					(net.minecraft.server.level.ServerLevel) world,
+					2,
+					player.getName().getString(),
+					player.getDisplayName() != null ? player.getDisplayName() : Component.literal(player.getName().getString()),
+					server,
+					player);
+		}
 		for (String command : commands) {
-			player.getServer().getCommandManager().executeCommand(sender, command);
+			server.getCommands().performPrefixedCommand(source, command);
 		}
 	}
-
-	static final class PrivilegedPlayer implements ICommandSender {
-		private final EntityPlayer player;
-
-		PrivilegedPlayer(EntityPlayer player) {
-			this.player = player;
-		}
-
-		@Override
-		public String getName() {
-			return player.getName();
-		}
-
-		@Override
-		public boolean canUseCommand(int permLevel, String commandName) {
-			return permLevel <= 2;
-		}
-
-		@Override
-		public World getEntityWorld() {
-			return player.getEntityWorld();
-		}
-
-		@Nullable
-		@Override
-		public MinecraftServer getServer() {
-			return player.getServer();
-		}
-
-		@Override
-		public BlockPos getPosition() {
-			return player.getPosition();
-		}
-
-		@Override
-		public Vec3d getPositionVector() {
-			return player.getPositionVector();
-		}
-
-		@Override
-		public Entity getCommandSenderEntity() {
-			return player;
-		}
-
-		@Override
-		public boolean sendCommandFeedback() {
-			return false;
-		}
-
-		/*@Override
-        public void sendMessage(ITextComponent component)
-        {
-            // TODO Instead of spamming message in chat window, can we log it for debugging purpose?
-        }*/
-	}
-
 }
