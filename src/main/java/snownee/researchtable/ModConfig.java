@@ -31,16 +31,13 @@ public final class ModConfig {
 	static {
 		ModConfigSpec.Builder b = new ModConfigSpec.Builder();
 		GUI_FULL_SCREEN = b.define("guiFullScreen", true);
-		GUI_HEIGHT = b.defineInRange("guiHeight", 158, 1, Integer.MAX_VALUE);
-		GUI_LIST_WIDTH = b.defineInRange("guiListWidth", 100, 1, Integer.MAX_VALUE);
+		GUI_HEIGHT = b.defineInRange("guiHeight", 180, 1, Integer.MAX_VALUE);
+		GUI_LIST_WIDTH = b.defineInRange("guiListWidth", 120, 1, Integer.MAX_VALUE);
 		GUI_LIST_AUTO_WIDTH = b.define("guiListAutoWidth", true);
-		GUI_DETAIL_WIDTH = b.defineInRange("guiDetailWidth", 150, 1, Integer.MAX_VALUE);
+		GUI_DETAIL_WIDTH = b.defineInRange("guiDetailWidth", 200, 1, Integer.MAX_VALUE);
 		HIDE_UNAVAILABLE_RESEARCH = b.define("hideUnavailableResearch", false);
 		HIDE_COMPLETED_RESEARCH = b.define("hideCompletedResearch", false);
-		NON_PRIVILEGED_MODE = b.comment(
-				"If enabled, the player will execute the rewarded command as if he is executing the command on his own. "
-						+ "Use this option if you encountered issue with a certain permission management system.")
-				.define("nonPrivilegedCommandReward", false);
+		NON_PRIVILEGED_MODE = b.define("nonPrivilegedCommandReward", false);
 		SPEC = b.build();
 	}
 
