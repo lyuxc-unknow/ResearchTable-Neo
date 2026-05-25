@@ -10,11 +10,11 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.TooltipFlag;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -33,7 +33,7 @@ public class RendererCrTLiquid extends ConditionRenderer<ConditionCrTLiquid> {
 	public void draw(GuiGraphics graphics, Minecraft mc, int x, int y) {
 		IClientFluidTypeExtensions ext = IClientFluidTypeExtensions.of(fluid.getFluid());
 		ResourceLocation still = ext.getStillTexture(fluid);
-		TextureAtlasSprite sprite = mc.getTextureAtlas(TextureAtlas.LOCATION_BLOCKS).apply(still);
+		TextureAtlasSprite sprite = mc.getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(still);
 		int tint = ext.getTintColor(fluid);
 		float a = ((tint >> 24) & 0xFF) / 255.0F;
 		float r = ((tint >> 16) & 0xFF) / 255.0F;
