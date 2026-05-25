@@ -1,5 +1,6 @@
 package snownee.researchtable.client;
 
+import dev.ftb.mods.ftblibrary.api.client.FTBLibraryClientApi;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
@@ -24,6 +25,9 @@ public final class ClientEvents {
 	@SubscribeEvent
 	public static void registerScreens(RegisterMenuScreensEvent event) {
 		event.register(Registration.TABLE_MENU.get(), GuiTable::new);
+		if (Dist.CLIENT.isClient() && ModList.get().isLoaded("ftblibrary")) {
+			FTBLibraryClientApi.get().addSidebarScreenBlacklist(GuiTable.class.getName());
+		}
 	}
 
 	@SubscribeEvent
