@@ -100,13 +100,14 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 
 	@Override
 	protected void init() {
+		int tabWidth = (ResearchList.CATEGORIES.size() > 1) ? 24 : 0;
 		if (ModConfig.guiFullScreen) {
 			imageWidth = width;
 			imageHeight = height;
-			detailWidth = width - listWidth;
+			detailWidth = width - listWidth - tabWidth;
 		} else {
 			detailWidth = ModConfig.guiDetailWidth;
-			imageWidth = listWidth + detailWidth + 8;
+			imageWidth = tabWidth + listWidth + detailWidth + 8;
 			imageHeight = ModConfig.guiHeight;
 		}
 		super.init();
@@ -274,8 +275,9 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 
 	@Override
 	protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-		// Fill the whole screen with a soft gray that's slightly darker than the left sidebar (0xEEEEEE).
-		graphics.fill(0, 0, width, height, 0xFFD8D8D8);
+		// Fill only the GUI rect (centered when not full-screen) with a soft gray that's slightly darker
+		// than the left sidebar (0xEEEEEE). The rest of the screen stays dim from renderBackground.
+		graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, 0xFFD8D8D8);
 	}
 
 	@Override
@@ -298,7 +300,7 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 			actionButton.visible = false;
 			return;
 		}
-		int leftPanel = ((ResearchList.CATEGORIES.size() > 1) ? 24 : 0) + listWidth + 4;
+		int leftPanel = leftPos + ((ResearchList.CATEGORIES.size() > 1) ? 24 : 0) + listWidth + 4;
 		int rightPanel = leftPanel + detailWidth - 8;
 		int contentWidth = rightPanel - leftPanel;
 
@@ -306,7 +308,7 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 
 		// Layout order: title → description → conditions → failing → buttons.
 		// Same recipe is used in renderDetail; keep them in sync.
-		int top = 4 + 14; // after title
+		int top = topPos + 4 + 14; // after title
 		top += descriptionViewportHeight(contentWidth) + 4;
 		top += Math.min(selected.getConditions().size(), MAX_VISIBLE_CONDITIONS) * CONDITION_ROW_HEIGHT + 4;
 		int failingH = failingTextsHeight(contentWidth);
@@ -321,7 +323,7 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 		if (submitButton.visible) totalWidth += submitButton.getWidth();
 		if (actionButton.visible) totalWidth += actionButton.getWidth();
 		if (submitButton.visible && actionButton.visible) totalWidth += gap;
-		int bx = rightPanel - totalWidth;
+		int bx = rightPanel - totalWidth - 4;
 		if (submitButton.visible) {
 			submitButton.setX(bx);
 			submitButton.setY(buttonRowTop);
@@ -371,15 +373,15 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 		int btnH = btn ? 22 : 0;
 		int padding = 4 /* top */ + 4 /* after desc */ + 4 /* after conds */ + (failingH > 0 ? 4 : 0) + 4 /* bottom */;
 		int reserved = titleH + condsH + failingH + btnH + padding;
-		return Math.max(0, height - reserved);
+		return Math.max(0, imageHeight - reserved);
 	}
 
 	private void renderTabs(GuiGraphics g, int mouseX, int mouseY) {
 		if (ResearchList.CATEGORIES.size() <= 1) {
 			return;
 		}
-		int x = 2;
-		int y = 2;
+		int x = leftPos + 2;
+		int y = topPos + 2;
 		for (ResearchCategory category : ResearchList.CATEGORIES) {
 			int bg = (category == currentCategory) ? 0xFFEEEEEE : 0xFF333333;
 			g.fill(x, y, x + 20, y + 20, bg);
@@ -394,17 +396,18 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 	}
 
 	private void renderLeftList(GuiGraphics g, int mouseX, int mouseY) {
-		int left = (ResearchList.CATEGORIES.size() > 1) ? 24 : 0;
-		int top = 0;
+		int left = leftPos + ((ResearchList.CATEGORIES.size() > 1) ? 24 : 0);
+		int top = topPos;
 		int right = left + listWidth;
-		int bottom = height;
+		int bottom = topPos + imageHeight;
 		g.fill(left, top, right, bottom, 0xFFEEEEEE);
 
+		g.enableScissor(left, top, right, bottom);
 		int y = top + 4 - scroll;
 		for (int i = 0; i < researches.size(); ++i) {
 			Research r = researches.get(i);
 			int slotTop = y + i * slotHeight;
-			if (slotTop + slotHeight < 0 || slotTop > height) {
+			if (slotTop + slotHeight < top || slotTop > bottom) {
 				continue;
 			}
 			boolean hover = mouseX >= left && mouseX < right && mouseY >= slotTop && mouseY < slotTop + slotHeight;
@@ -417,13 +420,14 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 			int textColor = dim ? 0x808080 : 0x000000;
 			g.drawString(font, title, left + 22, slotTop + 6, textColor, false);
 		}
+		g.disableScissor();
 	}
 
 	private void renderDetail(GuiGraphics g, int mouseX, int mouseY) {
-		int leftPanel = ((ResearchList.CATEGORIES.size() > 1) ? 24 : 0) + listWidth + 4;
+		int leftPanel = leftPos + ((ResearchList.CATEGORIES.size() > 1) ? 24 : 0) + listWidth + 4;
 		int rightPanel = leftPanel + detailWidth - 8;
 		int contentWidth = rightPanel - leftPanel;
-		int top = 4;
+		int top = topPos + 4;
 		if (selected == null) {
 			descViewportHeight = 0;
 			condViewportHeight = 0;
@@ -460,10 +464,7 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 					top += font.lineHeight;
 				}
 			}
-			top += 4;
 		}
-
-		// Buttons are positioned/rendered by super.render via positionButtons(); nothing else below.
 	}
 
 	private void renderScrollableConditions(GuiGraphics g, int leftPanel, int top, int rightPanel,
@@ -491,7 +492,7 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 		int y = condViewportTop - conditionScroll;
 		for (int i = 0; i < conditions.size(); i++) {
 			if (y + CONDITION_ROW_HEIGHT >= condViewportTop && y <= condViewportTop + condViewportHeight) {
-				renderCondition(g, condViewportLeft, y, conditionRight, conditions.get(i), i, isResearching);
+				renderCondition(g, condViewportLeft, y + 1, conditionRight, conditions.get(i), i, isResearching);
 			}
 			y += CONDITION_ROW_HEIGHT;
 		}
@@ -564,7 +565,7 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 		if (isResearching && target > 0) {
 			double progress = (double) current / (double) target;
 			progress = Math.clamp(progress, 0, 1);
-			int fillRight = left + (int) ((barRight - left) * progress);
+			int fillRight = left + (int) ((barRight - left) * Math.max(progress, 0.01));
 			g.fill(left + 1, top + 1, fillRight, top + 21, 0xFF7BC97B);
 			String pct = String.format("%d%%", (int) (progress * 100));
 			g.drawString(font, pct, barRight - font.width(pct) - 4, top + 7, 0x202020, false);
@@ -605,8 +606,8 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 		if (scoreText == null || scoreText.isEmpty()) {
 			return;
 		}
-		int x = width - 18;
-		int y = height - 18;
+		int x = leftPos + imageWidth - 18;
+		int y = topPos + imageHeight - 18;
 		RenderSystem.setShaderColor(1, 1, 1, 1);
 		g.blit(GLOBE, x, y, 0, 0, 11, 10, 11, 10);
 		if (mouseX >= x && mouseX <= x + 11 && mouseY >= y && mouseY <= y + 10) {
@@ -619,7 +620,7 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 		if (button == 0) {
 			// Tab click
 			if (ResearchList.CATEGORIES.size() > 1) {
-				int x = 2, y = 2;
+				int x = leftPos + 2, y = topPos + 2;
 				for (ResearchCategory cat : ResearchList.CATEGORIES) {
 					if (mouseX >= x && mouseX < x + 20 && mouseY >= y && mouseY < y + 20) {
 						currentCategory = cat;
@@ -631,10 +632,12 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 				}
 			}
 			// List click
-			int left = (ResearchList.CATEGORIES.size() > 1) ? 24 : 0;
+			int left = leftPos + ((ResearchList.CATEGORIES.size() > 1) ? 24 : 0);
 			int right = left + listWidth;
-			if (mouseX >= left && mouseX < right) {
-				int y = 4 - scroll;
+			int listTop = topPos;
+			int listBottom = topPos + imageHeight;
+			if (mouseX >= left && mouseX < right && mouseY >= listTop && mouseY < listBottom) {
+				int y = listTop + 4 - scroll;
 				for (int i = 0; i < researches.size(); ++i) {
 					int slotTop = y + i * slotHeight;
 					if (mouseY >= slotTop && mouseY < slotTop + slotHeight) {
@@ -655,11 +658,13 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-		int left = (ResearchList.CATEGORIES.size() > 1) ? 24 : 0;
+		int left = leftPos + ((ResearchList.CATEGORIES.size() > 1) ? 24 : 0);
 		int right = left + listWidth;
-		if (mouseX >= left && mouseX < right) {
+		int listTop = topPos;
+		int listBottom = topPos + imageHeight;
+		if (mouseX >= left && mouseX < right && mouseY >= listTop && mouseY < listBottom) {
 			scroll -= (int) (scrollY * 12);
-			int maxScroll = Math.max(0, researches.size() * slotHeight + 8 - height);
+			int maxScroll = Math.max(0, researches.size() * slotHeight + 8 - imageHeight);
 			scroll = Math.max(0, Math.min(maxScroll, scroll));
 			return true;
 		}
