@@ -60,7 +60,7 @@ public final class PacketSyncResearchList implements CustomPacketPayload {
 		for (Research r : ResearchList.LIST.values()) {
 			int idx = ResearchList.CATEGORIES.indexOf(r.getCategory());
 			@SuppressWarnings({"rawtypes", "unchecked"})
-			List<ICondition<?>> conds = new ArrayList<>(r.getConditions());
+			List<ICondition<?>> conds = new ArrayList<ICondition<?>>((Collection) r.getConditions());
 			resz.add(new ResearchSnapshot(
 					r.getName(),
 					idx,
