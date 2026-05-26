@@ -1,11 +1,13 @@
 package snownee.researchtable.network;
 
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
+@MethodsReturnNonnullByDefault
 public record PacketResearchChanged(BlockPos pos, String researchName, Action action) implements CustomPacketPayload {
 
 	public static final Type<PacketResearchChanged> TYPE = new Type<>(NetworkChannel.id("research_changed"));

@@ -4,11 +4,12 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import com.google.common.base.Objects;
+
+import com.mojang.authlib.GameProfile;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
@@ -36,13 +37,14 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 import snownee.researchtable.Registration;
 import snownee.researchtable.ResearchTable;
-import snownee.researchtable.container.ContainerTable;
+import snownee.researchtable.api.ICondition;
+import snownee.researchtable.client.gui.container.TableContainer;
 import snownee.researchtable.core.ConditionTypes;
 import snownee.researchtable.core.DataStorage;
-import snownee.researchtable.core.ICondition;
 import snownee.researchtable.core.Research;
 import snownee.researchtable.core.ResearchList;
 import snownee.researchtable.core.team.TeamHelper;
+import snownee.researchtable.plugin.minecraft.ExperienceHelper;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
@@ -178,8 +180,7 @@ public class TileTable extends BlockEntity implements MenuProvider {
 	@Nullable
 	private long[] progress;
 	public boolean hasChanged;
-	@Nonnull
-	public String ownerName = "";
+	public String ownerName = "None";
 	@Nullable
 	private UUID ownerUUID;
 	private final ResearchItemWrapper itemHandler = new ResearchItemWrapper();
@@ -241,7 +242,7 @@ public class TileTable extends BlockEntity implements MenuProvider {
 
 	public void setResearch(@Nullable Research research) {
 		String newName = research == null ? null : research.getName();
-		if (java.util.Objects.equals(this.researchName, newName)) {
+		if (this.researchName != null && this.researchName.equals(newName)) {
 			return;
 		}
 		if (this.researchName != null) {
@@ -392,7 +393,7 @@ public class TileTable extends BlockEntity implements MenuProvider {
 	}
 
 	public boolean hasPermission(@Nullable Player player) {
-		if (player == null || (player.level() != null && player.level().isClientSide)) {
+		if (player == null || player.level().isClientSide) {
 			return true;
 		}
 		return ownerUUID == null
@@ -450,11 +451,11 @@ public class TileTable extends BlockEntity implements MenuProvider {
 				player.getInventory().items.set(i, remain);
 			}
 		}
-		int availableXp = snownee.researchtable.plugin.minecraft.ExperienceHelper.getTotalXp(player);
+		int availableXp = ExperienceHelper.getTotalXp(player);
 		if (availableXp > 0) {
 			long consumed = match(ConditionTypes.EXPERIENCE, availableXp, false);
 			if (consumed > 0) {
-				snownee.researchtable.plugin.minecraft.ExperienceHelper.drain(player, (int) consumed);
+				ExperienceHelper.drain(player, (int) consumed);
 			}
 		}
 	}
@@ -526,7 +527,7 @@ public class TileTable extends BlockEntity implements MenuProvider {
 		if (cache == null) {
 			return null;
 		}
-		return cache.get(uuid).map(p -> p.getName()).orElse(null);
+		return cache.get(uuid).map(GameProfile::getName).orElse(null);
 	}
 
 	@SuppressWarnings("unused")
@@ -542,6 +543,6 @@ public class TileTable extends BlockEntity implements MenuProvider {
 	@Override
 	@Nullable
 	public AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {
-		return new ContainerTable(containerId, inventory, getBlockPos(), this);
+		return new TableContainer(containerId, inventory, getBlockPos(), this);
 	}
 }

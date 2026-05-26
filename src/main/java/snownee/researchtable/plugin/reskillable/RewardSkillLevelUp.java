@@ -13,7 +13,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
-import snownee.researchtable.core.IReward;
+import snownee.researchtable.api.IReward;
 
 public class RewardSkillLevelUp implements IReward {
 	protected final Skill skill;

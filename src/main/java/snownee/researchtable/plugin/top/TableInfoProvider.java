@@ -21,7 +21,7 @@ public class TableInfoProvider implements IProbeInfoProvider {
 
 	@Override
 	public ResourceLocation getID() {
-		return ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "tableinfo");
+		return ResearchTable.id("tableinfo");
 	}
 
 	@Override

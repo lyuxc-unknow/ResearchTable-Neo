@@ -10,10 +10,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import snownee.researchtable.Registration;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.core.CriterionType;
-import snownee.researchtable.core.ICriterion;
+import snownee.researchtable.api.ICriterion;
 
 public class CriterionDimension implements ICriterion {
 	private final Set<ResourceLocation> dimensions;
@@ -43,7 +42,7 @@ public class CriterionDimension implements ICriterion {
 	}
 
 	public static final CriterionType<CriterionDimension> TYPE = CriterionType.register(
-			Registration.id("dimension"),
+			ResearchTable.id("dimension"),
 			(buf, c) -> ByteBufCodecs.collection(ArrayList::new, ResourceLocation.STREAM_CODEC)
 					.encode(buf, new ArrayList<>(c.dimensions)),
 			buf -> {

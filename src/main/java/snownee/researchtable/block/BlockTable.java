@@ -50,14 +50,14 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
 import snownee.researchtable.ResearchTable;
-import snownee.researchtable.core.EventOpenTable;
+import snownee.researchtable.core.OpenTableEvent;
 import snownee.researchtable.core.Research;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 public class BlockTable extends HorizontalDirectionalBlock implements EntityBlock {
 
-	public static final com.mojang.serialization.MapCodec<BlockTable> CODEC = simpleCodec($ -> new BlockTable());
+	public static final MapCodec<BlockTable> CODEC = simpleCodec(properties1 -> new BlockTable());
 
 	private static final VoxelShape SHAPE = Shapes.create(new AABB(0.1, 0, 0.1, 0.9, 0.9, 0.9));
 
@@ -137,7 +137,7 @@ public class BlockTable extends HorizontalDirectionalBlock implements EntityBloc
 				return InteractionResult.CONSUME;
 			}
 			if (!level.isClientSide) {
-				if (NeoForge.EVENT_BUS.post(new EventOpenTable(player, table)).isCanceled()) {
+				if (NeoForge.EVENT_BUS.post(new OpenTableEvent(player, table)).isCanceled()) {
 					return InteractionResult.CONSUME;
 				}
 				table.putOwnerInfo(player);

@@ -1,13 +1,16 @@
-package snownee.researchtable.client.gui;
+package snownee.researchtable.client.gui.screen;
 
 import java.util.ArrayList;
 import java.util.IllegalFormatException;
 import java.util.List;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import org.jetbrains.annotations.NotNull;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Tooltip;
@@ -24,20 +27,23 @@ import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.network.PacketDistributor;
 import snownee.researchtable.ModConfig;
 import snownee.researchtable.ResearchTable;
+import snownee.researchtable.api.ICondition;
+import snownee.researchtable.api.ICriterion;
 import snownee.researchtable.block.TileTable;
+import snownee.researchtable.client.gui.TexturedButton;
+import snownee.researchtable.client.gui.container.TableContainer;
 import snownee.researchtable.client.renderer.ConditionRenderer;
-import snownee.researchtable.container.ContainerTable;
 import snownee.researchtable.core.ConditionTypes;
 import snownee.researchtable.core.DataStorage;
-import snownee.researchtable.core.ICondition;
-import snownee.researchtable.core.ICriterion;
 import snownee.researchtable.core.Research;
 import snownee.researchtable.core.ResearchCategory;
 import snownee.researchtable.core.ResearchList;
 import snownee.researchtable.network.PacketResearchChanged;
 import snownee.researchtable.network.PacketResearchChanged.Action;
 
-public class GuiTable extends AbstractContainerScreen<ContainerTable> {
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+public class TableScreen extends AbstractContainerScreen<TableContainer> {
 
 	private static final ResourceLocation GLOBE = ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "textures/gui/globe.png");
 	// 3 separate PNGs at the same pixel size as the button (default 80x20).
@@ -77,7 +83,7 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 	private TexturedButton actionButton;
 	private int lastSeenResearchListVersion = -1;
 
-	public GuiTable(ContainerTable menu, Inventory inventory, Component title) {
+	public TableScreen(TableContainer menu, Inventory inventory, Component title) {
 		super(menu, inventory, title);
 		this.imageWidth = 0;
 		this.imageHeight = 0;
@@ -289,7 +295,7 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 		super.render(graphics, mouseX, mouseY, partialTick);
 		// 3. Custom overlays (lists, detail panel content, tabs, globe)
 		renderLeftList(graphics, mouseX, mouseY);
-		renderDetail(graphics, mouseX, mouseY);
+		renderDetail(graphics);
 		renderTabs(graphics, mouseX, mouseY);
 		renderScoreGlobe(graphics, mouseX, mouseY);
 	}
@@ -385,10 +391,10 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 		for (ResearchCategory category : ResearchList.CATEGORIES) {
 			int bg = (category == currentCategory) ? 0xFFEEEEEE : 0xFF333333;
 			g.fill(x, y, x + 20, y + 20, bg);
-			g.renderItem(category.icon, x + 2, y + 2);
+			g.renderItem(category.icon(), x + 2, y + 2);
 			if (mouseX >= x && mouseX < x + 20 && mouseY >= y && mouseY < y + 20) {
-				if (category.nameKey != null) {
-					g.renderTooltip(font, Component.translatable(category.nameKey), mouseX, mouseY);
+				if (category.nameKey() != null) {
+					g.renderTooltip(font, Component.translatable(category.nameKey()), mouseX, mouseY);
 				}
 			}
 			y += 22;
@@ -423,7 +429,7 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 		g.disableScissor();
 	}
 
-	private void renderDetail(GuiGraphics g, int mouseX, int mouseY) {
+	private void renderDetail(GuiGraphics g) {
 		int leftPanel = leftPos + ((ResearchList.CATEGORIES.size() > 1) ? 24 : 0) + listWidth + 4;
 		int rightPanel = leftPanel + detailWidth - 8;
 		int contentWidth = rightPanel - leftPanel;
@@ -440,14 +446,14 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 
 		// Description (scrollable) — sized to absorb remaining vertical space.
 		int descHeight = descriptionViewportHeight(contentWidth);
-		renderScrollableDescription(g, leftPanel, top, rightPanel, descHeight, mouseX, mouseY);
+		renderScrollableDescription(g, leftPanel, top, rightPanel, descHeight);
 		top += descHeight + 4;
 
 		// Conditions (research requirements) — clipped to MAX_VISIBLE_CONDITIONS rows, extras scroll.
 		TileTable tile = menu.getTile();
 		Research researching = tile != null ? tile.getResearch() : null;
 		List<ICondition> conditions = selected.getConditions();
-		renderScrollableConditions(g, leftPanel, top, rightPanel, conditions, researching == selected, mouseX, mouseY);
+		renderScrollableConditions(g, leftPanel, top, rightPanel, conditions, researching == selected);
 		int visibleConditions = Math.min(conditions.size(), MAX_VISIBLE_CONDITIONS);
 		top += visibleConditions * CONDITION_ROW_HEIGHT;
 		top += 4;
@@ -468,7 +474,7 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 	}
 
 	private void renderScrollableConditions(GuiGraphics g, int leftPanel, int top, int rightPanel,
-			List<ICondition> conditions, boolean isResearching, int mouseX, int mouseY) {
+			List<ICondition> conditions, boolean isResearching) {
 		int visibleRows = Math.min(conditions.size(), MAX_VISIBLE_CONDITIONS);
 		condViewportLeft = leftPanel;
 		condViewportRight = rightPanel;
@@ -507,12 +513,12 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 		}
 	}
 
-	private void renderScrollableDescription(GuiGraphics g, int leftPanel, int top, int rightPanel, int viewportHeight, int mouseX, int mouseY) {
+	private void renderScrollableDescription(GuiGraphics g, int leftPanel, int top, int rightPanel, int viewportHeight) {
 		descViewportLeft = leftPanel;
 		descViewportRight = rightPanel;
 		descViewportTop = top;
 		descViewportHeight = Math.max(0, viewportHeight);
-		if (descViewportHeight <= 0) {
+		if (descViewportHeight == 0) {
 			return;
 		}
 
@@ -551,11 +557,10 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 		}
 	}
 
-	private void renderCondition(GuiGraphics g, int left, int top, int right, ICondition condition, int idx, boolean isResearching) {
+	private void renderCondition(GuiGraphics g, int left, int top, int barRight, ICondition condition, int idx, boolean isResearching) {
 		TileTable tile = menu.getTile();
 		long target = condition.getGoal();
 		long current = isResearching && tile != null ? tile.getProgress(idx) : 0;
-		int barRight = right;
 		// Track (slightly darker than panel) + outline
 		g.fill(left, top, barRight, top + 22, 0xFFC4C4C4);
 		g.fill(left, top, barRight, top + 1, 0xFFA8A8A8);
@@ -667,7 +672,7 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 		if (mouseX >= left && mouseX < right && mouseY >= listTop && mouseY < listBottom) {
 			scroll -= (int) (scrollY * 12);
 			int maxScroll = Math.max(0, researches.size() * slotHeight + 8 - imageHeight);
-			scroll = Math.max(0, Math.min(maxScroll, scroll));
+			scroll = Math.clamp(scroll, 0, maxScroll);
 			return true;
 		}
 		// Condition list scroll

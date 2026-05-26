@@ -11,7 +11,6 @@ import snownee.jade.api.IBlockComponentProvider;
 import snownee.jade.api.IServerDataProvider;
 import snownee.jade.api.ITooltip;
 import snownee.jade.api.config.IPluginConfig;
-import snownee.researchtable.Registration;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.block.TileTable;
 import snownee.researchtable.core.Research;
@@ -19,7 +18,7 @@ import snownee.researchtable.core.Research;
 public class TableInfoProvider implements IBlockComponentProvider, IServerDataProvider<BlockAccessor> {
 	public static final TableInfoProvider INSTANCE = new TableInfoProvider();
 	private static final String DATA_KEY = "ResearchTableInfo";
-	private static final ResourceLocation UID = Registration.id("table_info");
+	private static final ResourceLocation UID = ResearchTable.id("table_info");
 
 	@Override
 	public ResourceLocation getUid() {

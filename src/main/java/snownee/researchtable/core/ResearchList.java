@@ -10,6 +10,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import snownee.researchtable.ResearchTable;
+import snownee.researchtable.api.ICondition;
+import snownee.researchtable.api.IReward;
 import snownee.researchtable.network.PacketSyncResearchList;
 
 public final class ResearchList {
@@ -73,31 +75,31 @@ public final class ResearchList {
 
 		List<ResearchCategory> rebuilt = new ArrayList<>(packet.categories.size());
 		for (PacketSyncResearchList.CategorySnapshot c : packet.categories) {
-			ResearchCategory cat = new ResearchCategory(c.icon, c.nameKey);
+			ResearchCategory cat = new ResearchCategory(c.icon(), c.nameKey());
 			rebuilt.add(cat);
 		}
 		CATEGORIES.addAll(rebuilt);
 
 		List<IReward> noRewards = Collections.emptyList();
 		for (PacketSyncResearchList.ResearchSnapshot s : packet.researches) {
-			ResearchCategory cat = (s.categoryIdx >= 0 && s.categoryIdx < rebuilt.size())
-					? rebuilt.get(s.categoryIdx)
+			ResearchCategory cat = (s.categoryIdx() >= 0 && s.categoryIdx() < rebuilt.size())
+					? rebuilt.get(s.categoryIdx())
 					: null;
 			if (cat == null) {
 				continue;
 			}
 			@SuppressWarnings({"rawtypes", "unchecked"})
-			List<ICondition> conditions = new ArrayList<>((List) s.conditions);
+			List<ICondition> conditions = new ArrayList<>((List) s.conditions());
 			Research research = new Research(
-					s.name,
+					s.name(),
 					cat,
-					s.title,
-					s.description,
-					new ArrayList<>(s.criteria),
+					s.title(),
+					s.description(),
+					new ArrayList<>(s.criteria()),
 					noRewards,
 					noRewards,
 					conditions,
-					new ArrayList<>(s.icons));
+					new ArrayList<>(s.icons()));
 			LIST.put(research.getName(), research);
 		}
 

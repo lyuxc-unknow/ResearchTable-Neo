@@ -14,10 +14,10 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.world.item.ItemStack;
 import snownee.researchtable.ResearchTable;
+import snownee.researchtable.api.ICondition;
+import snownee.researchtable.api.ICriterion;
 import snownee.researchtable.core.ConditionType;
 import snownee.researchtable.core.CriterionType;
-import snownee.researchtable.core.ICondition;
-import snownee.researchtable.core.ICriterion;
 import snownee.researchtable.core.Research;
 import snownee.researchtable.core.ResearchCategory;
 import snownee.researchtable.core.ResearchList;
@@ -54,7 +54,7 @@ public final class PacketSyncResearchList implements CustomPacketPayload {
 	public static PacketSyncResearchList fromCurrentState() {
 		List<CategorySnapshot> cats = new ArrayList<>(ResearchList.CATEGORIES.size());
 		for (ResearchCategory c : ResearchList.CATEGORIES) {
-			cats.add(new CategorySnapshot(c.icon, c.nameKey));
+			cats.add(new CategorySnapshot(c.icon(), c.nameKey()));
 		}
 		List<ResearchSnapshot> resz = new ArrayList<>(ResearchList.LIST.size());
 		for (Research r : ResearchList.LIST.values()) {
@@ -177,36 +177,11 @@ public final class PacketSyncResearchList implements CustomPacketPayload {
 		return TYPE;
 	}
 
-	public static final class CategorySnapshot {
-		public final ItemStack icon;
-		@Nullable
-		public final String nameKey;
-
-		public CategorySnapshot(ItemStack icon, @Nullable String nameKey) {
-			this.icon = icon;
-			this.nameKey = nameKey;
-		}
+	public record CategorySnapshot(ItemStack icon, @Nullable String nameKey) {
 	}
 
-	public static final class ResearchSnapshot {
-		public final String name;
-		public final int categoryIdx;
-		public final String title;
-		public final String description;
-		public final List<ItemStack> icons;
-		public final Collection<ICondition<?>> conditions;
-		public final Collection<ICriterion> criteria;
-
-		@SuppressWarnings({"unchecked", "rawtypes"})
-		public ResearchSnapshot(String name, int categoryIdx, String title, String description,
-				List<ItemStack> icons, Collection<? extends ICondition<?>> conditions, Collection<? extends ICriterion> criteria) {
-			this.name = name;
-			this.categoryIdx = categoryIdx;
-			this.title = title;
-			this.description = description;
-			this.icons = icons;
-			this.conditions = (Collection) conditions;
-			this.criteria = (Collection) criteria;
+	public record ResearchSnapshot(String name, int categoryIdx, String title, String description,
+	                               List<ItemStack> icons, Collection<? extends ICondition<?>> conditions,
+	                               Collection<? extends ICriterion> criteria) {
 		}
-	}
 }

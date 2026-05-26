@@ -45,5 +45,7 @@
   "commands.researchtable.researchNotFound": "未找到研究。",
   "commands.researchtable.get": "%s: %s",
   "block.researchtable.table.tip": "破坏后保留进度",
-  "block.researchtable.table": "研究台"
+  "block.researchtable.table": "研究台",
+
+  "config.jade.plugin_researchtable.table_info": "研究台"
 }

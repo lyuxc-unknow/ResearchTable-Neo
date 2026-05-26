@@ -10,9 +10,9 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import snownee.researchtable.ResearchTable;
+import snownee.researchtable.api.ICriterion;
 
 public class CriterionResearches implements ICriterion {
 	private final Collection<String> researches;
@@ -63,7 +63,7 @@ public class CriterionResearches implements ICriterion {
 	}
 
 	public static final CriterionType<CriterionResearches> TYPE = CriterionType.register(
-			ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "researches"),
+			ResearchTable.id("researches"),
 			(buf, c) -> {
 				ByteBufCodecs.collection(ArrayList::new, ByteBufCodecs.STRING_UTF8).encode(buf, new ArrayList<>(c.researches));
 				buf.writeVarInt(c.r);

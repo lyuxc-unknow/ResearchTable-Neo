@@ -12,10 +12,9 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.biome.Biome;
-import snownee.researchtable.Registration;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.core.CriterionType;
-import snownee.researchtable.core.ICriterion;
+import snownee.researchtable.api.ICriterion;
 
 public class CriterionBiome implements ICriterion {
 	private final Set<ResourceLocation> biomes;
@@ -48,7 +47,7 @@ public class CriterionBiome implements ICriterion {
 	}
 
 	public static final CriterionType<CriterionBiome> TYPE = CriterionType.register(
-			Registration.id("biome"),
+			ResearchTable.id("biome"),
 			(buf, c) -> ByteBufCodecs.collection(ArrayList::new, ResourceLocation.STREAM_CODEC)
 					.encode(buf, new ArrayList<>(c.biomes)),
 			buf -> {

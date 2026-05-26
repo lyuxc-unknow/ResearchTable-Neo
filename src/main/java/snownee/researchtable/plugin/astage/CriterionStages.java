@@ -13,10 +13,9 @@ import net.minecraft.client.resources.language.I18n;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.world.entity.player.Player;
-import snownee.researchtable.Registration;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.core.CriterionType;
-import snownee.researchtable.core.ICriterion;
+import snownee.researchtable.api.ICriterion;
 
 public class CriterionStages implements ICriterion {
 	private final Collection<String> stages;
@@ -64,7 +63,7 @@ public class CriterionStages implements ICriterion {
 	}
 
 	public static final CriterionType<CriterionStages> TYPE = CriterionType.register(
-			Registration.id("stages"),
+			ResearchTable.id("stages"),
 			(buf, c) -> {
 				ByteBufCodecs.collection(ArrayList::new, ByteBufCodecs.STRING_UTF8).encode(buf, new ArrayList<>(c.stages));
 				buf.writeVarInt(c.r);

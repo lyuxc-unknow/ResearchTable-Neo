@@ -5,10 +5,10 @@ import net.neoforged.bus.api.ICancellableEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import snownee.researchtable.block.TileTable;
 
-public class EventOpenTable extends PlayerEvent implements ICancellableEvent {
+public class OpenTableEvent extends PlayerEvent implements ICancellableEvent {
 	private final TileTable table;
 
-	public EventOpenTable(Player player, TileTable table) {
+	public OpenTableEvent(Player player, TileTable table) {
 		super(player);
 		this.table = table;
 	}

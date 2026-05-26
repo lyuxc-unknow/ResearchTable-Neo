@@ -1,7 +1,10 @@
 package snownee.researchtable;
 
+import java.util.function.Supplier;
+
+import com.mojang.datafixers.DSL;
+
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -13,9 +16,7 @@ import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import snownee.researchtable.block.BlockTable;
 import snownee.researchtable.block.TileTable;
-import snownee.researchtable.container.ContainerTable;
-
-import java.util.function.Supplier;
+import snownee.researchtable.client.gui.container.TableContainer;
 
 public final class Registration {
 	public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(ResearchTable.MODID);
@@ -28,13 +29,13 @@ public final class Registration {
 
 	public static final Supplier<BlockEntityType<TileTable>> TABLE_BLOCK_ENTITY = BLOCK_ENTITIES.register(
 			"table",
-			() -> BlockEntityType.Builder.of(TileTable::new, TABLE_BLOCK.get()).build(null));
+			() -> BlockEntityType.Builder.of(TileTable::new, TABLE_BLOCK.get()).build(DSL.emptyPartType()));
 
-	public static final Supplier<MenuType<ContainerTable>> TABLE_MENU = MENUS.register(
+	public static final Supplier<MenuType<TableContainer>> TABLE_MENU = MENUS.register(
 			"table",
 			() -> IMenuTypeExtension.create((id, inv, buf) -> {
 				net.minecraft.core.BlockPos pos = buf.readBlockPos();
-				return new ContainerTable(id, inv, pos);
+				return new TableContainer(id, inv, pos);
 			}));
 
 	private Registration() {
@@ -61,10 +62,6 @@ public final class Registration {
 				Capabilities.FluidHandler.BLOCK,
 				TABLE_BLOCK_ENTITY.get(),
 				(be, side) -> be.getFluidHandler());
-	}
-
-	public static ResourceLocation id(String path) {
-		return ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, path);
 	}
 }
 

@@ -3,10 +3,9 @@ package snownee.researchtable.plugin.minecraft;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Player;
-import snownee.researchtable.Registration;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.core.CriterionType;
-import snownee.researchtable.core.ICriterion;
+import snownee.researchtable.api.ICriterion;
 
 /**
  * Matches when the current world day-time (modulo 24000) falls inside [min, max].
@@ -37,7 +36,7 @@ public class CriterionTime implements ICriterion {
 	}
 
 	public static final CriterionType<CriterionTime> TYPE = CriterionType.register(
-			Registration.id("time"),
+			ResearchTable.id("time"),
 			(buf, c) -> {
 				buf.writeVarInt(c.min);
 				buf.writeVarInt(c.max);

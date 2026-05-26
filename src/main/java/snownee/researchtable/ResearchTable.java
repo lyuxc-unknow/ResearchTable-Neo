@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.ReadOnlyScoreInfo;
@@ -24,7 +25,7 @@ import snownee.researchtable.command.CommandResearch;
 import snownee.researchtable.core.CriterionResearchCount;
 import snownee.researchtable.core.CriterionResearches;
 import snownee.researchtable.core.CriterionScore;
-import snownee.researchtable.core.EventOpenTable;
+import snownee.researchtable.core.OpenTableEvent;
 import snownee.researchtable.network.NetworkChannel;
 import snownee.researchtable.plugin.astage.CriterionStages;
 import snownee.researchtable.plugin.crafttweaker.ConditionCrTItem;
@@ -56,6 +57,10 @@ public class ResearchTable {
 		if (FMLEnvironment.dist == Dist.CLIENT) {
 			snownee.researchtable.client.ClientInit.register(container);
 		}
+	}
+
+	public static ResourceLocation id(String path) {
+		return ResourceLocation.fromNamespaceAndPath(MODID, path);
 	}
 
 	private void commonSetup(FMLCommonSetupEvent event) {
@@ -100,7 +105,7 @@ public class ResearchTable {
 	}
 
 	@SubscribeEvent
-	public static void onOpenTable(EventOpenTable event) {
+	public static void onOpenTable(OpenTableEvent event) {
 		Player player = event.getEntity();
 		if (scores == null || scores.length == 0 || player.level().isClientSide) {
 			return;

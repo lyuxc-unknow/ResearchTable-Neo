@@ -9,7 +9,7 @@ import com.google.common.collect.ImmutableSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import snownee.researchtable.core.IReward;
+import snownee.researchtable.api.IReward;
 
 public class RewardUnlockStages implements IReward {
 	private final Set<String> stages;

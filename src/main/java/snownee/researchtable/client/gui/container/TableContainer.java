@@ -1,7 +1,9 @@
-package snownee.researchtable.container;
+package snownee.researchtable.client.gui.container;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Inventory;
@@ -14,18 +16,20 @@ import net.minecraft.world.level.block.state.BlockState;
 import snownee.researchtable.Registration;
 import snownee.researchtable.block.TileTable;
 
-public class ContainerTable extends AbstractContainerMenu {
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+public class TableContainer extends AbstractContainerMenu {
 
 	private final BlockPos pos;
 	@Nullable
 	private final TileTable tile;
 	private final Inventory inventory;
 
-	public ContainerTable(int id, Inventory inventory, BlockPos pos) {
+	public TableContainer(int id, Inventory inventory, BlockPos pos) {
 		this(id, inventory, pos, resolveTile(inventory, pos));
 	}
 
-	public ContainerTable(int id, Inventory inventory, BlockPos pos, @Nullable TileTable tile) {
+	public TableContainer(int id, Inventory inventory, BlockPos pos, @Nullable TileTable tile) {
 		super(Registration.TABLE_MENU.get(), id);
 		this.pos = pos;
 		this.tile = tile;

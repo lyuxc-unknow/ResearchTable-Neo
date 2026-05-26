@@ -2,11 +2,10 @@ package snownee.researchtable.plugin.minecraft;
 
 import java.util.function.Supplier;
 
-import net.minecraft.resources.ResourceLocation;
 import snownee.researchtable.ResearchTable;
+import snownee.researchtable.api.ICondition;
 import snownee.researchtable.core.ConditionType;
 import snownee.researchtable.core.ConditionTypes;
-import snownee.researchtable.core.ICondition;
 
 /**
  * Player-XP cost paid in during research. Behaves like {@link snownee.researchtable.plugin.forge.ConditionForgeEnergy}:
@@ -35,7 +34,7 @@ public class ConditionExperience implements ICondition<Integer> {
 	}
 
 	public static final ConditionType<ConditionExperience> TYPE = ConditionType.register(
-			ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "experience"),
+			ResearchTable.id("experience"),
 			(buf, c) -> buf.writeVarInt(c.count),
 			buf -> new ConditionExperience(buf.readVarInt()));
 

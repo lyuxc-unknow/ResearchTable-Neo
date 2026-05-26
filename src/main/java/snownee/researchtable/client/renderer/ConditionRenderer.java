@@ -10,7 +10,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.TooltipFlag;
-import snownee.researchtable.core.ICondition;
+import snownee.researchtable.api.ICondition;
 
 public abstract class ConditionRenderer<T extends ICondition<?>> {
 	private static final Map<Class<?>, ConditionRendererFactory<?>> MAP = new HashMap<>();

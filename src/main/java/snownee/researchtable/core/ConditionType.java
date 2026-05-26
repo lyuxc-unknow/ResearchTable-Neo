@@ -7,6 +7,7 @@ import javax.annotation.Nullable;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import snownee.researchtable.api.ICondition;
 
 /**
  * Identifies a concrete {@link ICondition} implementation for network sync. Each implementation

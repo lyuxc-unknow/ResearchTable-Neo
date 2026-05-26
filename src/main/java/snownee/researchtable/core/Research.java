@@ -13,6 +13,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import snownee.researchtable.api.ICondition;
+import snownee.researchtable.api.ICriterion;
+import snownee.researchtable.api.IReward;
 
 public class Research {
 	private static final ItemStack DEFAULT_ICON = new ItemStack(Blocks.GRASS_BLOCK);

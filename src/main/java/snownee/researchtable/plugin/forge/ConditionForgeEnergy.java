@@ -5,7 +5,7 @@ import java.util.function.Supplier;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.core.ConditionType;
 import snownee.researchtable.core.ConditionTypes;
-import snownee.researchtable.core.ICondition;
+import snownee.researchtable.api.ICondition;
 
 public class ConditionForgeEnergy implements ICondition<Long> {
 	private final long count;

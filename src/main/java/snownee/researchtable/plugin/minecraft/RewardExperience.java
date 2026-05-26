@@ -3,7 +3,7 @@ package snownee.researchtable.plugin.minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import snownee.researchtable.core.IReward;
+import snownee.researchtable.api.IReward;
 
 public class RewardExperience implements IReward {
 	private final int amount;

@@ -3,11 +3,13 @@ package snownee.researchtable.command;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 
@@ -30,7 +32,7 @@ public class CommandResearch {
 
 	private static final SuggestionProvider<CommandSourceStack> RESEARCH_SUGGESTIONS = (ctx, builder) -> {
 		Collection<String> names = ResearchList.LIST.keySet();
-		return SharedSuggestionProvider.suggest(java.util.stream.Stream.concat(names.stream(), java.util.stream.Stream.of("all")), builder);
+		return SharedSuggestionProvider.suggest(Stream.concat(names.stream(), Stream.of("all")), builder);
 	};
 
 	@SubscribeEvent
@@ -51,7 +53,7 @@ public class CommandResearch {
 		);
 	}
 
-	private static int executeGet(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+	private static int executeGet(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
 		String name = StringArgumentType.getString(ctx, "research");
 		Collection<Research> researches = lookup(name);
@@ -62,7 +64,7 @@ public class CommandResearch {
 		return researches.size();
 	}
 
-	private static int executeSet(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+	private static int executeSet(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
 		String name = StringArgumentType.getString(ctx, "research");
 		int count = IntegerArgumentType.getInteger(ctx, "count");
@@ -74,7 +76,7 @@ public class CommandResearch {
 		return researches.size();
 	}
 
-	private static Collection<Research> lookup(String name) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+	private static Collection<Research> lookup(String name) throws CommandSyntaxException {
 		if (name.equals("all")) {
 			return ResearchList.LIST.values();
 		}

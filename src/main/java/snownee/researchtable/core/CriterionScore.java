@@ -2,9 +2,9 @@ package snownee.researchtable.core;
 
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import snownee.researchtable.ResearchTable;
+import snownee.researchtable.api.ICriterion;
 
 public class CriterionScore implements ICriterion {
 	private final String s;
@@ -31,7 +31,7 @@ public class CriterionScore implements ICriterion {
 	}
 
 	public static final CriterionType<CriterionScore> TYPE = CriterionType.register(
-			ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "score"),
+			ResearchTable.id("score"),
 			(buf, x) -> {
 				buf.writeUtf(x.s);
 				buf.writeVarInt(x.min);

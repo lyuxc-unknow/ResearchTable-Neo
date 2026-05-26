@@ -8,7 +8,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.core.ConditionType;
 import snownee.researchtable.core.ConditionTypes;
-import snownee.researchtable.core.ICondition;
+import snownee.researchtable.api.ICondition;
 
 public class ConditionCrTLiquid implements ICondition<FluidStack> {
 	final FluidStack fluid;

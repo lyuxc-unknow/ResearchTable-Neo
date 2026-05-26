@@ -1,4 +1,4 @@
-package snownee.researchtable.core.team;
+package snownee.researchtable.api.team;
 
 import java.util.Collection;
 import java.util.Collections;

@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
+import snownee.researchtable.api.team.TeamProvider;
 import snownee.researchtable.core.DataStorage;
 
 public class TeamHelper {
@@ -11,6 +12,6 @@ public class TeamHelper {
 	public static TeamProvider provider = TeamProvider.Stub.INSTANCE;
 
 	public static void onPlayerAdd(UUID uuid, UUID owner) {
-		DataStorage.onPlayerAdd(owner, owner);
+		DataStorage.onPlayerAdd(uuid, owner);
 	}
 }

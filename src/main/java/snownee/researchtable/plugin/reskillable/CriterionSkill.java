@@ -10,7 +10,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import snownee.kiwi.util.Util;
 import snownee.researchtable.ResearchTable;
-import snownee.researchtable.core.ICriterion;
+import snownee.researchtable.api.ICriterion;
 
 public class CriterionSkill implements ICriterion {
 	private final Skill skill;

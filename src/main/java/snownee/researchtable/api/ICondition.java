@@ -1,6 +1,8 @@
-package snownee.researchtable.core;
+package snownee.researchtable.api;
 
 import java.util.function.Supplier;
+
+import snownee.researchtable.core.ConditionType;
 
 public interface ICondition<T> {
 	Supplier<Class<T>> getMatchType();

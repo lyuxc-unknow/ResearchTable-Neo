@@ -4,10 +4,9 @@ import net.minecraft.client.resources.language.I18n;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import snownee.researchtable.Registration;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.core.CriterionType;
-import snownee.researchtable.core.ICriterion;
+import snownee.researchtable.api.ICriterion;
 
 public class CriterionWeather implements ICriterion {
 	public enum Weather {
@@ -41,7 +40,7 @@ public class CriterionWeather implements ICriterion {
 	}
 
 	public static final CriterionType<CriterionWeather> TYPE = CriterionType.register(
-			Registration.id("weather"),
+			ResearchTable.id("weather"),
 			(buf, c) -> buf.writeVarInt(c.weather.ordinal()),
 			buf -> new CriterionWeather(Weather.values()[buf.readVarInt()]));
 

@@ -10,9 +10,8 @@ import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.api.event.PlayerJoinedPartyTeamEvent;
 import dev.ftb.mods.ftbteams.api.event.TeamEvent;
-import snownee.researchtable.core.DataStorage;
+import snownee.researchtable.api.team.TeamProvider;
 import snownee.researchtable.core.team.TeamHelper;
-import snownee.researchtable.core.team.TeamProvider;
 
 public class FTBTeamProvider implements TeamProvider {
 	public static final FTBTeamProvider INSTANCE = new FTBTeamProvider();
@@ -30,7 +29,7 @@ public class FTBTeamProvider implements TeamProvider {
 		if (playerUUID.equals(newOwner)) {
 			return;
 		}
-		DataStorage.onPlayerAdd(playerUUID, newOwner);
+		TeamHelper.onPlayerAdd(playerUUID, newOwner);
 	}
 
 	@Override

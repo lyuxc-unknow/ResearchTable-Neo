@@ -15,7 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.core.ConditionType;
 import snownee.researchtable.core.ConditionTypes;
-import snownee.researchtable.core.ICondition;
+import snownee.researchtable.api.ICondition;
 
 public class ConditionCrTItem implements ICondition<ItemStack> {
 
@@ -95,9 +95,8 @@ public class ConditionCrTItem implements ICondition<ItemStack> {
 		return customName;
 	}
 
-	public ConditionCrTItem setCustomName(@Nullable String name) {
+	public void setCustomName(@Nullable String name) {
 		customName = name;
-		return this;
 	}
 
 	public static final ConditionType<ConditionCrTItem> TYPE = ConditionType.register(

@@ -28,11 +28,14 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.LevelResource;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.core.team.TeamHelper;
 import snownee.researchtable.network.PacketSyncClient;
@@ -57,7 +60,7 @@ public class DataStorage {
 		changed = false;
 		clientData = null;
 
-		File folder = new File(world.getServer().getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toFile(), "data/");
+		File folder = new File(world.getServer().getWorldPath(LevelResource.ROOT).toFile(), "data/");
 		File file = new File(folder, ResearchTable.MODID + ".dat");
 		CompoundTag data = null;
 
@@ -145,7 +148,7 @@ public class DataStorage {
 			data.put("records", recordsDataList);
 		}
 
-		File folder = new File(world.getServer().getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toFile(), "data/");
+		File folder = new File(world.getServer().getWorldPath(LevelResource.ROOT).toFile(), "data/");
 		File file = new File(folder, ResearchTable.MODID + ".dat");
 		try {
 			if (!file.exists()) {
@@ -159,7 +162,7 @@ public class DataStorage {
 			}
 			changed = false;
 		} catch (Exception e) {
-			e.printStackTrace();
+			e.fillInStackTrace();
 		}
 	}
 
@@ -283,7 +286,7 @@ public class DataStorage {
 		if (player instanceof ServerPlayer sp && !(player instanceof FakePlayer)) {
 			Object2IntMap<String> data = getRecords(player.getGameProfile().getId());
 			if (!data.isEmpty()) {
-				net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new PacketSyncClient(data));
+				PacketDistributor.sendToPlayer(sp, new PacketSyncClient(data));
 			}
 		}
 	}
@@ -310,7 +313,7 @@ public class DataStorage {
 
 	@Nullable
 	public static ServerPlayer getPlayer(UUID uuid) {
-		MinecraftServer server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+		MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
 		if (server == null) {
 			return null;
 		}

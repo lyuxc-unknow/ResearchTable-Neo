@@ -7,6 +7,7 @@ import javax.annotation.Nullable;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import snownee.researchtable.api.ICriterion;
 
 /**
  * Type registry for {@link ICriterion} subclasses, mirroring {@link ConditionType}. Criteria are

@@ -3,9 +3,9 @@ package snownee.researchtable.core;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import snownee.researchtable.ResearchTable;
+import snownee.researchtable.api.ICriterion;
 
 public class CriterionResearchCount implements ICriterion {
 	private final String id;
@@ -27,7 +27,7 @@ public class CriterionResearchCount implements ICriterion {
 	}
 
 	public static final CriterionType<CriterionResearchCount> TYPE = CriterionType.register(
-			ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "research_count"),
+			ResearchTable.id("research_count"),
 			(buf, x) -> {
 				buf.writeUtf(x.id);
 				buf.writeVarInt(x.c);

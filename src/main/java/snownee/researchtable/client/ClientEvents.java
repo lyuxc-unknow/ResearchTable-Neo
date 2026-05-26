@@ -9,7 +9,7 @@ import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import snownee.researchtable.Registration;
 import snownee.researchtable.ResearchTable;
-import snownee.researchtable.client.gui.GuiTable;
+import snownee.researchtable.client.gui.screen.TableScreen;
 import snownee.researchtable.client.renderer.ConditionRenderer;
 import snownee.researchtable.plugin.forge.ConditionForgeEnergy;
 import snownee.researchtable.plugin.forge.RendererForgeEnergy;
@@ -24,9 +24,9 @@ public final class ClientEvents {
 
 	@SubscribeEvent
 	public static void registerScreens(RegisterMenuScreensEvent event) {
-		event.register(Registration.TABLE_MENU.get(), GuiTable::new);
+		event.register(Registration.TABLE_MENU.get(), TableScreen::new);
 		if (Dist.CLIENT.isClient() && ModList.get().isLoaded("ftblibrary")) {
-			FTBLibraryClientApi.get().addSidebarScreenBlacklist(GuiTable.class.getName());
+			FTBLibraryClientApi.get().addSidebarScreenBlacklist(TableScreen.class.getName());
 		}
 	}
 
