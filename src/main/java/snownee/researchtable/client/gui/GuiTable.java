@@ -565,7 +565,9 @@ public class GuiTable extends AbstractContainerScreen<ContainerTable> {
 		if (isResearching && target > 0) {
 			double progress = (double) current / (double) target;
 			progress = Math.clamp(progress, 0, 1);
-			int fillRight = left + (int) ((barRight - left) * Math.max(progress, 0.01));
+			/// 约束用于渲染的progress进度，限制在0.01至0.99之间防止进度条渲染时超出进度框
+			var progressStyle = Math.clamp(progress, 0.01, 0.9999);
+			int fillRight = left + (int) ((barRight - left) * progressStyle);
 			g.fill(left + 1, top + 1, fillRight, top + 21, 0xFF7BC97B);
 			String pct = String.format("%d%%", (int) (progress * 100));
 			g.drawString(font, pct, barRight - font.width(pct) - 4, top + 7, 0x202020, false);
