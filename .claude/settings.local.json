@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(javap -p ./com/blamejared/crafttweaker/api/ingredient/IIngredient.class)"
+      "Bash(javap -p ./com/blamejared/crafttweaker/api/ingredient/IIngredient.class)",
+      "Read(//tmp/**)",
+      "Bash(javap -p snownee/jade/api/WailaPlugin.class)",
+      "Bash(javap -p snownee/jade/api/IToggleableProvider.class)",
+      "Bash(xargs grep -l \"appendServerData\")",
+      "Bash(javap -c -p snownee/jade/addon/vanilla/NextEntityDropProvider.class)"
     ]
   }
 }
