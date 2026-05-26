@@ -7,12 +7,14 @@ import com.mojang.datafixers.DSL;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import snownee.researchtable.block.TableBlock;
 import snownee.researchtable.block.TableBlockEntity;
@@ -47,6 +49,13 @@ public final class Registration {
 		BLOCK_ENTITIES.register(modBus);
 		MENUS.register(modBus);
 		modBus.addListener(Registration::registerCapabilities);
+		modBus.addListener(Registration::buildCreativeTabs);
+	}
+
+	public static void buildCreativeTabs(BuildCreativeModeTabContentsEvent event) {
+		if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
+			event.accept(TABLE_BLOCK.get());
+		}
 	}
 
 	private static void registerCapabilities(RegisterCapabilitiesEvent event) {

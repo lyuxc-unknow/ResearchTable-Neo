@@ -23,7 +23,6 @@ public class TableContainer extends AbstractContainerMenu {
 	private final BlockPos pos;
 	@Nullable
 	private final TableBlockEntity tile;
-	private final Inventory inventory;
 
 	public TableContainer(int id, Inventory inventory, BlockPos pos) {
 		this(id, inventory, pos, resolveTile(inventory, pos));
@@ -33,7 +32,6 @@ public class TableContainer extends AbstractContainerMenu {
 		super(Registration.TABLE_MENU.get(), id);
 		this.pos = pos;
 		this.tile = tile;
-		this.inventory = inventory;
 	}
 
 	@Nullable
