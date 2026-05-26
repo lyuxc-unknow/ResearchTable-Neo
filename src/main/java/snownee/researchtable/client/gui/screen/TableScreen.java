@@ -29,7 +29,7 @@ import snownee.researchtable.ModConfig;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.api.ICondition;
 import snownee.researchtable.api.ICriterion;
-import snownee.researchtable.block.TileTable;
+import snownee.researchtable.block.TableBlockEntity;
 import snownee.researchtable.client.gui.TexturedButton;
 import snownee.researchtable.client.gui.container.TableContainer;
 import snownee.researchtable.client.renderer.ConditionRenderer;
@@ -95,7 +95,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 					.max().orElse(0);
 			listWidth = Math.max(listWidth, 40 + titleWidth);
 		}
-		TileTable t = menu.getTile();
+		TableBlockEntity t = menu.getTile();
 		if (t != null) {
 			data = t.getData();
 		}
@@ -188,7 +188,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 	}
 
 	private void onSubmit() {
-		TileTable tile = menu.getTile();
+		TableBlockEntity tile = menu.getTile();
 		if (tile == null || selected == null) {
 			return;
 		}
@@ -199,7 +199,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 	}
 
 	private void onAction() {
-		TileTable tile = menu.getTile();
+		TableBlockEntity tile = menu.getTile();
 		if (tile == null || selected == null) {
 			return;
 		}
@@ -220,7 +220,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 	}
 
 	private void refreshButtons() {
-		TileTable tile = menu.getTile();
+		TableBlockEntity tile = menu.getTile();
 		if (tile == null || selected == null) {
 			submitButton.visible = false;
 			actionButton.visible = false;
@@ -270,7 +270,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 			buildScoreText();
 			refreshButtons();
 		}
-		TileTable tile = menu.getTile();
+		TableBlockEntity tile = menu.getTile();
 		if (tile != null && tile.hasChanged) {
 			data = tile.getData();
 			updateResearchList();
@@ -349,7 +349,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		if (selected == null) {
 			return 0;
 		}
-		TileTable tile = menu.getTile();
+		TableBlockEntity tile = menu.getTile();
 		Research researching = tile != null ? tile.getResearch() : null;
 		if (researching == selected || selected.canResearch(minecraft.player, data)) {
 			return 0;
@@ -450,7 +450,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		top += descHeight + 4;
 
 		// Conditions (research requirements) — clipped to MAX_VISIBLE_CONDITIONS rows, extras scroll.
-		TileTable tile = menu.getTile();
+		TableBlockEntity tile = menu.getTile();
 		Research researching = tile != null ? tile.getResearch() : null;
 		List<ICondition> conditions = selected.getConditions();
 		renderScrollableConditions(g, leftPanel, top, rightPanel, conditions, researching == selected);
@@ -558,7 +558,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 	}
 
 	private void renderCondition(GuiGraphics g, int left, int top, int barRight, ICondition condition, int idx, boolean isResearching) {
-		TileTable tile = menu.getTile();
+		TableBlockEntity tile = menu.getTile();
 		long target = condition.getGoal();
 		long current = isResearching && tile != null ? tile.getProgress(idx) : 0;
 		// Track (slightly darker than panel) + outline

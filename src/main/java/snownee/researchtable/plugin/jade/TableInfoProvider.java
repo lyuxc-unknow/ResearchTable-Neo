@@ -12,7 +12,7 @@ import snownee.jade.api.IServerDataProvider;
 import snownee.jade.api.ITooltip;
 import snownee.jade.api.config.IPluginConfig;
 import snownee.researchtable.ResearchTable;
-import snownee.researchtable.block.TileTable;
+import snownee.researchtable.block.TableBlockEntity;
 import snownee.researchtable.core.Research;
 
 public class TableInfoProvider implements IBlockComponentProvider, IServerDataProvider<BlockAccessor> {
@@ -49,7 +49,7 @@ public class TableInfoProvider implements IBlockComponentProvider, IServerDataPr
 
 	@Override
 	public void appendServerData(CompoundTag data, BlockAccessor accessor) {
-		if (!(accessor.getBlockEntity() instanceof TileTable table)) {
+		if (!(accessor.getBlockEntity() instanceof TableBlockEntity table)) {
 			return;
 		}
 		CompoundTag tag = new CompoundTag();

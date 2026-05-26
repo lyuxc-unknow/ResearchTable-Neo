@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import snownee.researchtable.Registration;
-import snownee.researchtable.block.TileTable;
+import snownee.researchtable.block.TableBlockEntity;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -22,14 +22,14 @@ public class TableContainer extends AbstractContainerMenu {
 
 	private final BlockPos pos;
 	@Nullable
-	private final TileTable tile;
+	private final TableBlockEntity tile;
 	private final Inventory inventory;
 
 	public TableContainer(int id, Inventory inventory, BlockPos pos) {
 		this(id, inventory, pos, resolveTile(inventory, pos));
 	}
 
-	public TableContainer(int id, Inventory inventory, BlockPos pos, @Nullable TileTable tile) {
+	public TableContainer(int id, Inventory inventory, BlockPos pos, @Nullable TableBlockEntity tile) {
 		super(Registration.TABLE_MENU.get(), id);
 		this.pos = pos;
 		this.tile = tile;
@@ -37,9 +37,9 @@ public class TableContainer extends AbstractContainerMenu {
 	}
 
 	@Nullable
-	private static TileTable resolveTile(Inventory inv, BlockPos pos) {
+	private static TableBlockEntity resolveTile(Inventory inv, BlockPos pos) {
 		BlockEntity be = inv.player.level().getBlockEntity(pos);
-		return be instanceof TileTable t ? t : null;
+		return be instanceof TableBlockEntity t ? t : null;
 	}
 
 	public BlockPos getPos() {
@@ -47,7 +47,7 @@ public class TableContainer extends AbstractContainerMenu {
 	}
 
 	@Nullable
-	public TileTable getTile() {
+	public TableBlockEntity getTile() {
 		return tile;
 	}
 

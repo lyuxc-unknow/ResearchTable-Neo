@@ -55,13 +55,13 @@ import snownee.researchtable.core.Research;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public class BlockTable extends HorizontalDirectionalBlock implements EntityBlock {
+public class TableBlock extends HorizontalDirectionalBlock implements EntityBlock {
 
-	public static final MapCodec<BlockTable> CODEC = simpleCodec(properties1 -> new BlockTable());
+	public static final MapCodec<TableBlock> CODEC = simpleCodec(properties1 -> new TableBlock());
 
 	private static final VoxelShape SHAPE = Shapes.create(new AABB(0.1, 0, 0.1, 0.9, 0.9, 0.9));
 
-	public BlockTable() {
+	public TableBlock() {
 		super(Properties.of()
 				.mapColor(MapColor.METAL)
 				.strength(2.5F)
@@ -96,7 +96,7 @@ public class BlockTable extends HorizontalDirectionalBlock implements EntityBloc
 	@Override
 	@Nullable
 	public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-		return new TileTable(pos, state);
+		return new TableBlockEntity(pos, state);
 	}
 
 	@Override
@@ -131,7 +131,7 @@ public class BlockTable extends HorizontalDirectionalBlock implements EntityBloc
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
 		BlockEntity tile = level.getBlockEntity(pos);
-		if (tile instanceof TileTable table) {
+		if (tile instanceof TableBlockEntity table) {
 			if (!table.hasPermission(player)) {
 				player.sendSystemMessage(Component.translatable(ResearchTable.MODID + ".noPermission"));
 				return InteractionResult.CONSUME;
@@ -190,7 +190,7 @@ public class BlockTable extends HorizontalDirectionalBlock implements EntityBloc
 	public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
 		if (!level.isClientSide) {
 			BlockEntity tile = level.getBlockEntity(pos);
-			if (tile instanceof TileTable table) {
+			if (tile instanceof TableBlockEntity table) {
 				ItemStack stack = new ItemStack(this);
 				CompoundTag tileCompound = table.saveWithoutMetadata(level.registryAccess());
 				CompoundTag compound = new CompoundTag();
@@ -214,7 +214,7 @@ public class BlockTable extends HorizontalDirectionalBlock implements EntityBloc
 	public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
 		if (!level.isClientSide && placer instanceof Player player) {
 			BlockEntity tile = level.getBlockEntity(pos);
-			if (tile instanceof TileTable t) {
+			if (tile instanceof TableBlockEntity t) {
 				t.putOwnerInfo(player);
 			}
 		}
@@ -228,7 +228,7 @@ public class BlockTable extends HorizontalDirectionalBlock implements EntityBloc
 	@Override
 	protected int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos) {
 		BlockEntity tile = level.getBlockEntity(pos);
-		if (tile instanceof TileTable table) {
+		if (tile instanceof TableBlockEntity table) {
 			if (table.getResearch() == null) {
 				return 0;
 			}
@@ -243,7 +243,7 @@ public class BlockTable extends HorizontalDirectionalBlock implements EntityBloc
 	@Override
 	protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block neighbor, BlockPos fromPos, boolean isMoving) {
 		BlockEntity tile = level.getBlockEntity(pos);
-		if (tile instanceof TileTable table) {
+		if (tile instanceof TableBlockEntity table) {
 			table.powered = level.hasNeighborSignal(pos) || level.hasNeighborSignal(pos.above());
 		}
 	}

@@ -8,7 +8,7 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import snownee.researchtable.ResearchTable;
-import snownee.researchtable.block.TileTable;
+import snownee.researchtable.block.TableBlockEntity;
 import snownee.researchtable.core.DataStorage;
 import snownee.researchtable.core.Research;
 import snownee.researchtable.core.ResearchList;
@@ -43,7 +43,7 @@ public final class NetworkChannel {
 				return;
 			}
 			BlockEntity tile = player.level().getBlockEntity(pos);
-			if (!(tile instanceof TileTable table)) {
+			if (!(tile instanceof TableBlockEntity table)) {
 				return;
 			}
 			if (!table.hasPermission(player)) {

@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import snownee.researchtable.Registration;
 import snownee.researchtable.ResearchTable;
-import snownee.researchtable.block.TileTable;
+import snownee.researchtable.block.TableBlockEntity;
 import snownee.researchtable.core.Research;
 
 public class TableInfoProvider implements IProbeInfoProvider {
@@ -29,7 +29,7 @@ public class TableInfoProvider implements IProbeInfoProvider {
 		if (probeMode == ProbeMode.EXTENDED || probeMode == ProbeMode.DEBUG) {
 			if (blockState.getBlock() == Registration.TABLE_BLOCK.get()) {
 				BlockEntity tile = level.getBlockEntity(iProbeHitData.getPos());
-				if (tile instanceof TileTable table) {
+				if (tile instanceof TableBlockEntity table) {
 					if (!table.ownerName.isEmpty()) {
 						iProbeInfo.text(I18n.get(ResearchTable.MODID + ".gui.owner", ChatFormatting.WHITE + table.ownerName));
 					}

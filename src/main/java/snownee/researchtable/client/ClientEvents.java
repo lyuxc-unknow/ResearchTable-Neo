@@ -11,6 +11,10 @@ import snownee.researchtable.Registration;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.client.gui.screen.TableScreen;
 import snownee.researchtable.client.renderer.ConditionRenderer;
+import snownee.researchtable.plugin.crafttweaker.ConditionCrTItem;
+import snownee.researchtable.plugin.crafttweaker.ConditionCrTLiquid;
+import snownee.researchtable.plugin.crafttweaker.RendererCrTItem;
+import snownee.researchtable.plugin.crafttweaker.RendererCrTLiquid;
 import snownee.researchtable.plugin.forge.ConditionForgeEnergy;
 import snownee.researchtable.plugin.forge.RendererForgeEnergy;
 import snownee.researchtable.plugin.minecraft.ConditionExperience;
@@ -37,11 +41,11 @@ public final class ClientEvents {
 			ConditionRenderer.register(ConditionExperience.class, new RendererExperience.Factory());
 			if (ModList.get().isLoaded("crafttweaker")) {
 				ConditionRenderer.register(
-						snownee.researchtable.plugin.crafttweaker.ConditionCrTItem.class,
-						new snownee.researchtable.plugin.crafttweaker.RendererCrTItem.Factory());
+						ConditionCrTItem.class,
+						new RendererCrTItem.Factory());
 				ConditionRenderer.register(
-						snownee.researchtable.plugin.crafttweaker.ConditionCrTLiquid.class,
-						new snownee.researchtable.plugin.crafttweaker.RendererCrTLiquid.Factory());
+						ConditionCrTLiquid.class,
+						new RendererCrTLiquid.Factory());
 			}
 		});
 	}

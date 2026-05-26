@@ -48,7 +48,7 @@ import snownee.researchtable.plugin.minecraft.ExperienceHelper;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public class TileTable extends BlockEntity implements MenuProvider {
+public class TableBlockEntity extends BlockEntity implements MenuProvider {
 
 	public class ResearchItemWrapper implements IItemHandler {
 
@@ -190,7 +190,7 @@ public class TileTable extends BlockEntity implements MenuProvider {
 	private CompoundTag data = new CompoundTag();
 	public boolean powered;
 
-	public TileTable(BlockPos pos, BlockState state) {
+	public TableBlockEntity(BlockPos pos, BlockState state) {
 		super(Registration.TABLE_BLOCK_ENTITY.get(), pos, state);
 	}
 

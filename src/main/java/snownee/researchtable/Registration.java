@@ -14,8 +14,8 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
 import net.neoforged.neoforge.registries.DeferredRegister;
-import snownee.researchtable.block.BlockTable;
-import snownee.researchtable.block.TileTable;
+import snownee.researchtable.block.TableBlock;
+import snownee.researchtable.block.TableBlockEntity;
 import snownee.researchtable.client.gui.container.TableContainer;
 
 public final class Registration {
@@ -24,12 +24,12 @@ public final class Registration {
 	public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, ResearchTable.MODID);
 	public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(Registries.MENU, ResearchTable.MODID);
 
-	public static final Supplier<BlockTable> TABLE_BLOCK = BLOCKS.register("table", BlockTable::new);
+	public static final Supplier<TableBlock> TABLE_BLOCK = BLOCKS.register("table", TableBlock::new);
 	public static final Supplier<BlockItem> TABLE_ITEM = ITEMS.register("table", () -> new BlockItem(TABLE_BLOCK.get(), new Item.Properties()));
 
-	public static final Supplier<BlockEntityType<TileTable>> TABLE_BLOCK_ENTITY = BLOCK_ENTITIES.register(
+	public static final Supplier<BlockEntityType<TableBlockEntity>> TABLE_BLOCK_ENTITY = BLOCK_ENTITIES.register(
 			"table",
-			() -> BlockEntityType.Builder.of(TileTable::new, TABLE_BLOCK.get()).build(DSL.emptyPartType()));
+			() -> BlockEntityType.Builder.of(TableBlockEntity::new, TABLE_BLOCK.get()).build(DSL.emptyPartType()));
 
 	public static final Supplier<MenuType<TableContainer>> TABLE_MENU = MENUS.register(
 			"table",
