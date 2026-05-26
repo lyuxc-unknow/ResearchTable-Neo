@@ -81,6 +81,9 @@ public class ResearchTable {
 		if (ModList.get().isLoaded("astages")) {
 			touchAStagesTypes();
 		}
+		if (ModList.get().isLoaded("ftbteams")) {
+			initFTBTeams();
+		}
 	}
 
 	private static void touchCrTTypes() {
@@ -90,6 +93,10 @@ public class ResearchTable {
 
 	private static void touchAStagesTypes() {
 		Objects.requireNonNull(CriterionStages.TYPE);
+	}
+
+	private static void initFTBTeams() {
+		snownee.researchtable.plugin.ftbteam.FTBTeamProvider.init();
 	}
 
 	@SubscribeEvent
