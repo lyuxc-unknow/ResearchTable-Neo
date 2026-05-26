@@ -79,9 +79,11 @@ dependencies {
     runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 
     runtimeOnly "curse.maven:kiwi-303657:8110292"
-    runtimeOnly "curse.maven:architectury-api-419699:5786327"
+    implementation "curse.maven:architectury-api-419699:5786327"
     implementation "curse.maven:astage-1120180:8010695"
     implementation "curse.maven:ftb-library-404465:7746959"
+    implementation "curse.maven:ftb-team-404468:7878281"
+    implementation "curse.maven:jade-324717:7545219"
 
     implementation "mcjty.theoneprobe:theoneprobe:${top_version}"
     implementation "com.blamejared.crafttweaker:CraftTweaker-neoforge-${minecraft_version}:${crafttweaker_version}"
