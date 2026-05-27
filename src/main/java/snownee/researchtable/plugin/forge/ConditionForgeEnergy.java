@@ -3,9 +3,9 @@ package snownee.researchtable.plugin.forge;
 import java.util.function.Supplier;
 
 import snownee.researchtable.ResearchTable;
+import snownee.researchtable.api.ICondition;
 import snownee.researchtable.core.ConditionType;
 import snownee.researchtable.core.ConditionTypes;
-import snownee.researchtable.api.ICondition;
 
 public class ConditionForgeEnergy implements ICondition<Long> {
 	private final long count;
@@ -30,7 +30,7 @@ public class ConditionForgeEnergy implements ICondition<Long> {
 	}
 
 	public static final ConditionType<ConditionForgeEnergy> TYPE = ConditionType.register(
-			net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "forge_energy"),
+			ResearchTable.id("forge_energy"),
 			(buf, c) -> buf.writeVarLong(c.count),
 			buf -> new ConditionForgeEnergy(buf.readVarLong()));
 

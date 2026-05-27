@@ -13,8 +13,6 @@
   "researchtable.gui.optionalStage": "Optional stages: %s",
   "researchtable.gui.requiredResearch": "Required researches: %s",
   "researchtable.gui.optionalResearch": "Optional researches: %s",
-  "researchtable.gui.needSkill": "Need skill: %s Lv. %d %s",
-  "researchtable.gui.needMoney": "Need money: %s %s",
   "researchtable.gui.needBiome": "Required biome: %s",
   "researchtable.gui.needDimension": "Required dimension: %s",
   "researchtable.gui.needWeather": "Required weather: %s",
@@ -23,7 +21,6 @@
   "researchtable.gui.weather.rain": "Rain",
   "researchtable.gui.weather.thunder": "Thunder",
   "researchtable.gui.xp": "XP",
-  "researchtable.gui.moneyFormat": "%d %s",
   "researchtable.gui.maxCount": "This research can only be done %s time(s)!",
   "researchtable.gui.researchNoFound": "Cannot find research %s.",
   "researchtable.gui.youHave": "(you have %s)",
@@ -38,8 +35,8 @@
 
   "commands.researchtable.usage": "/researchtable <Player> <Research> [count]",
   "commands.researchtable.researchNotFound": "Research not found.",
-  "commands.researchtable.get": "%s: %s",
-  "commands.researchtable.set": "%s: successful",
+  "commands.researchtable.get": "The number of times player %s has researched %s is %s",
+  "commands.researchtable.set": "Successfully set player The number of times %s researched %s is %s",
 
   "researchtable.configuration.guiFullScreen": "GUI Full Screen",
   "researchtable.configuration.guiListWidth": "Gui List Width",

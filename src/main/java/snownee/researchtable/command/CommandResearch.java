@@ -59,7 +59,7 @@ public class CommandResearch {
 		Collection<Research> researches = lookup(name);
 		for (Research r : researches) {
 			int count = DataStorage.count(player.getGameProfile().getId(), r);
-			ctx.getSource().sendSuccess(() -> Component.translatable("commands." + ResearchTable.MODID + ".get", player.getName().getString(), count), true);
+			ctx.getSource().sendSuccess(() -> Component.translatable("commands." + ResearchTable.MODID + ".get", player.getName().getString(), r.getName(), count), true);
 		}
 		return researches.size();
 	}
@@ -71,7 +71,7 @@ public class CommandResearch {
 		Collection<Research> researches = lookup(name);
 		for (Research r : researches) {
 			DataStorage.setCount(player.getGameProfile().getId(), r, count);
-			ctx.getSource().sendSuccess(() -> Component.translatable("commands." + ResearchTable.MODID + ".set", player.getName().getString()), true);
+			ctx.getSource().sendSuccess(() -> Component.translatable("commands." + ResearchTable.MODID + ".set", player.getName().getString(), r.getName(), count), true);
 		}
 		return researches.size();
 	}

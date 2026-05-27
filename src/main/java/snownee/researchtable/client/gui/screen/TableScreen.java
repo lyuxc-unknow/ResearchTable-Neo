@@ -45,12 +45,12 @@ import snownee.researchtable.network.PacketResearchChanged.Action;
 @MethodsReturnNonnullByDefault
 public class TableScreen extends AbstractContainerScreen<TableContainer> {
 
-	private static final ResourceLocation GLOBE = ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "textures/gui/globe.png");
+	private static final ResourceLocation GLOBE = ResearchTable.id("textures/gui/globe.png");
 	// 3 separate PNGs at the same pixel size as the button (default 80x20).
 	// Drop in PNGs at these paths to override the vanilla button look.
-	private static final ResourceLocation BUTTON_NORMAL = ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "textures/gui/button_normal.png");
-	private static final ResourceLocation BUTTON_HOVERED = ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "textures/gui/button_hovered.png");
-	private static final ResourceLocation BUTTON_DISABLED = ResourceLocation.fromNamespaceAndPath(ResearchTable.MODID, "textures/gui/button_disabled.png");
+	private static final ResourceLocation BUTTON_NORMAL = ResearchTable.id("textures/gui/button_normal.png");
+	private static final ResourceLocation BUTTON_HOVERED = ResearchTable.id("textures/gui/button_hovered.png");
+	private static final ResourceLocation BUTTON_DISABLED = ResearchTable.id("textures/gui/button_disabled.png");
 
 	public static CompoundTag data = new CompoundTag();
 
@@ -387,14 +387,14 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 			return;
 		}
 		int x = leftPos + 2;
-		int y = topPos + 2;
+		int y = topPos + 4;
 		for (ResearchCategory category : ResearchList.CATEGORIES) {
-			int bg = (category == currentCategory) ? 0xFFEEEEEE : 0xFF333333;
+			int bg = (category == currentCategory) ? 0xFFEEEEEE : 0xFF919191;
 			g.fill(x, y, x + 20, y + 20, bg);
 			g.renderItem(category.icon(), x + 2, y + 2);
 			if (mouseX >= x && mouseX < x + 20 && mouseY >= y && mouseY < y + 20) {
 				if (category.nameKey() != null) {
-					g.renderTooltip(font, Component.translatable(category.nameKey()), mouseX, mouseY);
+					g.renderTooltip(font, Component.translatable(category.nameKey()), mouseX, mouseY + 8);
 				}
 			}
 			y += 22;
@@ -433,7 +433,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		int leftPanel = leftPos + ((ResearchList.CATEGORIES.size() > 1) ? 24 : 0) + listWidth + 4;
 		int rightPanel = leftPanel + detailWidth - 8;
 		int contentWidth = rightPanel - leftPanel;
-		int top = topPos + 4;
+		int top = topPos + 6;
 		if (selected == null) {
 			descViewportHeight = 0;
 			condViewportHeight = 0;

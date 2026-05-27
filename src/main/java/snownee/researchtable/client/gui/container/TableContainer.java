@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -58,8 +59,8 @@ public class TableContainer extends AbstractContainerMenu {
 	}
 
 	@Override
-	public net.minecraft.world.item.ItemStack quickMoveStack(Player player, int index) {
-		return net.minecraft.world.item.ItemStack.EMPTY;
+	public ItemStack quickMoveStack(Player player, int index) {
+		return ItemStack.EMPTY;
 	}
 
 	@Override
