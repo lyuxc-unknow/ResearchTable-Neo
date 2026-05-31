@@ -19,15 +19,15 @@ public class ConditionCrTLiquid implements ICondition<FluidStack> {
 	}
 
 	public ConditionCrTLiquid(IFluidStack ingredient, long count) {
-		this.count = count;
+		this.count = Math.max(0, count);
 		FluidStack raw = ingredient.<FluidStack>getInternal().copy();
 		raw.setAmount(1);
 		this.fluid = raw;
 	}
 
 	private ConditionCrTLiquid(FluidStack fluid, long count) {
-		this.fluid = fluid;
-		this.count = count;
+		this.fluid = fluid.copy();
+		this.count = Math.max(0, count);
 	}
 
 	@Override
@@ -49,7 +49,7 @@ public class ConditionCrTLiquid implements ICondition<FluidStack> {
 	}
 
 	public FluidStack getFluid() {
-		return fluid;
+		return fluid.copy();
 	}
 
 	public static final ConditionType<ConditionCrTLiquid> TYPE = ConditionType.register(

@@ -13,8 +13,12 @@ public class CriterionWeather implements ICriterion {
 		CLEAR, RAIN, THUNDER;
 
 		public static Weather of(Level level) {
-			if (level.isThundering()) return THUNDER;
-			if (level.isRaining()) return RAIN;
+			if (level.isThundering()) {
+				return THUNDER;
+			}
+			if (level.isRaining()) {
+				return RAIN;
+			}
 			return CLEAR;
 		}
 
@@ -42,7 +46,7 @@ public class CriterionWeather implements ICriterion {
 	public static final CriterionType<CriterionWeather> TYPE = CriterionType.register(
 			ResearchTable.id("weather"),
 			(buf, c) -> buf.writeVarInt(c.weather.ordinal()),
-			buf -> new CriterionWeather(Weather.values()[buf.readVarInt()]));
+			buf -> new CriterionWeather(Weather.values()[Math.floorMod(buf.readVarInt(), Weather.values().length)]));
 
 	@Override
 	public CriterionType<CriterionWeather> getType() {

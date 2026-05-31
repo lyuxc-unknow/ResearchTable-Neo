@@ -2,8 +2,6 @@ package snownee.researchtable.client.gui;
 
 import javax.annotation.Nullable;
 
-import org.jetbrains.annotations.NotNull;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -54,7 +52,7 @@ public class TexturedButton extends Button {
 	}
 
 	@Override
-	protected void renderWidget(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+	protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
 		ResourceLocation tex;
 		int textColor;
 		if (!active) {

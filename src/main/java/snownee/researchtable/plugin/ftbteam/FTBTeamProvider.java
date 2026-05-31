@@ -47,7 +47,7 @@ public class FTBTeamProvider implements TeamProvider {
 		if (teams != null) {
 			return teams.getMembers();
 		}
-		return List.of();
+		return List.of(player);
 	}
 
 	@Override
@@ -56,6 +56,6 @@ public class FTBTeamProvider implements TeamProvider {
 		if (teams != null) {
 			return teams.getShortName();
 		}
-		return "";
+		return null;
 	}
 }

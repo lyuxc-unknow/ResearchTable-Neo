@@ -15,12 +15,12 @@ public class ConditionExperience implements ICondition<Integer> {
 	private final int count;
 
 	public ConditionExperience(int count) {
-		this.count = count;
+		this.count = Math.max(0, count);
 	}
 
 	@Override
 	public long matches(Integer e) {
-		return e;
+		return Math.max(0, e);
 	}
 
 	@Override

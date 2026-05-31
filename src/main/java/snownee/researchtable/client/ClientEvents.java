@@ -29,7 +29,7 @@ public final class ClientEvents {
 	@SubscribeEvent
 	public static void registerScreens(RegisterMenuScreensEvent event) {
 		event.register(Registration.TABLE_MENU.get(), TableScreen::new);
-		if (Dist.CLIENT.isClient() && ModList.get().isLoaded("ftblibrary")) {
+		if (ModList.get().isLoaded("ftblibrary")) {
 			FTBLibraryClientApi.get().addSidebarScreenBlacklist(TableScreen.class.getName());
 		}
 	}

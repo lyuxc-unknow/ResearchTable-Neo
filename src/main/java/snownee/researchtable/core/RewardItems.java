@@ -17,8 +17,8 @@ public class RewardItems implements IReward {
 
 	@Override
 	public void earn(Level world, BlockPos pos, Player player) {
-		for (ItemStack item : items)
-			ItemHandlerHelper.giveItemToPlayer(player, item);
+		for (ItemStack item : items) {
+			ItemHandlerHelper.giveItemToPlayer(player, item.copy());
+		}
 	}
-
 }

@@ -1,7 +1,6 @@
 package snownee.researchtable.core;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -26,21 +25,24 @@ public class Research {
 	private final String description;
 	@Nullable
 	private final List<ItemStack> icons;
-	private final List<ICondition> conditions;
-	private final Collection<ICriterion> criteria;
-	private final Collection<IReward> triggers;
-	private final Collection<IReward> rewards;
+	private final List<ICondition<?>> conditions;
+	private final List<ICriterion> criteria;
+	private final List<IReward> triggers;
+	private final List<IReward> rewards;
 
-	public Research(String name, ResearchCategory category, String title, String description, Collection<ICriterion> criteria, Collection<IReward> triggers, Collection<IReward> rewards, List<ICondition> conditions, @Nullable List<ItemStack> icons) {
+	public Research(String name, ResearchCategory category, String title, String description, Collection<ICriterion> criteria, Collection<IReward> triggers, Collection<IReward> rewards, List<ICondition<?>> conditions, @Nullable List<ItemStack> icons) {
 		this.name = name;
 		this.category = category;
 		this.title = title;
 		this.description = description;
-		this.criteria = criteria;
-		this.triggers = triggers;
-		this.rewards = rewards;
-		this.conditions = conditions;
-		this.icons = icons;
+		this.criteria = List.copyOf(criteria);
+		this.triggers = List.copyOf(triggers);
+		this.rewards = List.copyOf(rewards);
+		this.conditions = List.copyOf(conditions);
+		this.icons = icons == null ? null : icons.stream()
+				.filter(stack -> !stack.isEmpty())
+				.map(ItemStack::copy)
+				.toList();
 	}
 
 	public String getName() {
@@ -69,14 +71,14 @@ public class Research {
 
 	public ItemStack getIcon() {
 		if (icons == null || icons.isEmpty()) {
-			return DEFAULT_ICON;
+			return DEFAULT_ICON.copy();
 		} else {
-			return icons.getFirst();
+			return icons.getFirst().copy();
 		}
 	}
 
-	public List<ICondition> getConditions() {
-		return Collections.unmodifiableList(conditions);
+	public List<ICondition<?>> getConditions() {
+		return conditions;
 	}
 
 	public boolean canResearch(Player player, CompoundTag data) {
@@ -84,11 +86,11 @@ public class Research {
 	}
 
 	public Collection<ICriterion> getCriteria() {
-		return Collections.unmodifiableCollection(criteria);
+		return criteria;
 	}
 
 	public Collection<IReward> getTriggers() {
-		return Collections.unmodifiableCollection(triggers);
+		return triggers;
 	}
 
 	public void complete(Level world, BlockPos pos, Player player) {
@@ -97,7 +99,7 @@ public class Research {
 
 	@Override
 	public String toString() {
-		return "Research@" + getName();
+		return "Research[" + getName() + "]";
 	}
 
 	public void start(Level world, BlockPos pos, Player player) {

@@ -17,7 +17,6 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
 import it.unimi.dsi.fastutil.objects.Object2IntMaps;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtAccounter;
@@ -67,11 +66,12 @@ public class DataStorage {
 		if (file.exists() && file.isFile()) {
 			try (InputStream stream = new FileInputStream(file)) {
 				data = NbtIo.readCompressed(stream, NbtAccounter.unlimitedHeap());
-			} catch (Exception ex1) {
+			} catch (Exception compressedReadFailure) {
 				try {
 					data = NbtIo.read(file.toPath());
-				} catch (Exception ex2) {
-					ex2.fillInStackTrace();
+				} catch (Exception plainReadFailure) {
+					compressedReadFailure.addSuppressed(plainReadFailure);
+					ResearchTable.LOGGER.warn("Failed to load research data from {}", file, compressedReadFailure);
 				}
 			}
 		}
@@ -81,26 +81,9 @@ public class DataStorage {
 
 		int format = data.getInt("__v");
 		if (format == 0) {
-			for (String player : data.getAllKeys()) {
-				if (data.contains(player, Tag.TAG_COMPOUND)) {
-					CompoundTag compound = data.getCompound(player);
-					Object2IntMap<String> researches = readPlayerData(compound);
-					if (!researches.isEmpty()) {
-						players.put(player, researches);
-					}
-				}
-			}
+			readNamedPlayerRecords(data);
 		} else if (format == 1) {
-			CompoundTag playersData = data.getCompound("oldRecords");
-			for (String player : playersData.getAllKeys()) {
-				if (playersData.contains(player, Tag.TAG_COMPOUND)) {
-					CompoundTag compound = playersData.getCompound(player);
-					Object2IntMap<String> researches = readPlayerData(compound);
-					if (!researches.isEmpty()) {
-						players.put(player, researches);
-					}
-				}
-			}
+			readLegacyPlayerRecords(data);
 
 			ListTag recordsData = data.getList("records", Tag.TAG_COMPOUND);
 			for (Tag raw : recordsData) {
@@ -112,7 +95,31 @@ public class DataStorage {
 				}
 			}
 		} else {
-			throw new RuntimeException("Unsupported format version");
+			throw new IllegalStateException("Unsupported research data format version: " + format);
+		}
+	}
+
+	private static void readLegacyPlayerRecords(CompoundTag data) {
+		if (data.contains("oldRecords", Tag.TAG_COMPOUND)) {
+			readNamedPlayerRecords(data.getCompound("oldRecords"));
+			return;
+		}
+		if (data.contains("oldRecords", Tag.TAG_LIST)) {
+			ListTag oldRecords = data.getList("oldRecords", Tag.TAG_COMPOUND);
+			for (Tag raw : oldRecords) {
+				readNamedPlayerRecords((CompoundTag) raw);
+			}
+		}
+	}
+
+	private static void readNamedPlayerRecords(CompoundTag playersData) {
+		for (String player : playersData.getAllKeys()) {
+			if (playersData.contains(player, Tag.TAG_COMPOUND)) {
+				Object2IntMap<String> researches = readPlayerData(playersData.getCompound(player));
+				if (!researches.isEmpty()) {
+					players.put(player, researches);
+				}
+			}
 		}
 	}
 
@@ -123,24 +130,29 @@ public class DataStorage {
 		CompoundTag data = new CompoundTag();
 		data.putInt("__v", 1);
 
-		ListTag playersDataList = new ListTag();
+		CompoundTag playersData = new CompoundTag();
 		players.forEach((player, researches) -> {
 			if (!researches.isEmpty()) {
-				CompoundTag playersData = new CompoundTag();
-				playersData.put(player, writePlayerData(researches));
-				playersDataList.add(playersData);
+				CompoundTag playerData = writePlayerData(researches);
+				if (!playerData.isEmpty()) {
+					playersData.put(player, playerData);
+				}
 			}
 		});
-		if (!playersDataList.isEmpty()) {
-			data.put("oldRecords", playersDataList);
+		if (!playersData.isEmpty()) {
+			data.put("oldRecords", playersData);
 		}
 
 		ListTag recordsDataList = new ListTag();
 		records.forEach((k, v) -> {
 			if (!v.isEmpty()) {
+				CompoundTag progressData = writePlayerData(v);
+				if (progressData.isEmpty()) {
+					return;
+				}
 				CompoundTag recordsData = new CompoundTag();
 				recordsData.putUUID("k", k);
-				recordsData.put("v", writePlayerData(v));
+				recordsData.put("v", progressData);
 				recordsDataList.add(recordsData);
 			}
 		});
@@ -151,10 +163,10 @@ public class DataStorage {
 		File folder = new File(world.getServer().getWorldPath(LevelResource.ROOT).toFile(), "data/");
 		File file = new File(folder, ResearchTable.MODID + ".dat");
 		try {
+			if (!folder.exists() && !folder.mkdirs()) {
+				throw new IllegalStateException("Could not create data directory: " + folder);
+			}
 			if (!file.exists()) {
-				if (!folder.exists()) {
-					folder.mkdirs();
-				}
 				file.createNewFile();
 			}
 			try (OutputStream stream = new FileOutputStream(file)) {
@@ -162,7 +174,7 @@ public class DataStorage {
 			}
 			changed = false;
 		} catch (Exception e) {
-			e.fillInStackTrace();
+			ResearchTable.LOGGER.error("Failed to save research data to {}", file, e);
 		}
 	}
 
@@ -216,8 +228,9 @@ public class DataStorage {
 
 	public static boolean hasAllOf(UUID uuid, Collection<String> researches) {
 		for (String research : researches) {
-			if (count(uuid, research) == 0)
+			if (count(uuid, research) == 0) {
 				return false;
+			}
 		}
 		return true;
 	}
@@ -285,9 +298,7 @@ public class DataStorage {
 		}
 		if (player instanceof ServerPlayer sp && !(player instanceof FakePlayer)) {
 			Object2IntMap<String> data = getRecords(player.getGameProfile().getId());
-			if (!data.isEmpty()) {
-				PacketDistributor.sendToPlayer(sp, new PacketSyncClient(data));
-			}
+			PacketDistributor.sendToPlayer(sp, new PacketSyncClient(data));
 		}
 	}
 
@@ -307,7 +318,11 @@ public class DataStorage {
 
 	public static CompoundTag writePlayerData(Object2IntMap<String> map) {
 		CompoundTag data = new CompoundTag();
-		map.forEach(data::putInt);
+		map.forEach((research, count) -> {
+			if (count > 0) {
+				data.putInt(research, count);
+			}
+		});
 		return data;
 	}
 
@@ -324,10 +339,5 @@ public class DataStorage {
 		mergeProgress(records.getOrDefault(uuid, Object2IntMaps.emptyMap()), owner);
 		records.remove(uuid);
 		syncClientAllMembers(owner);
-	}
-
-	@SuppressWarnings("unused")
-	private static UUID dummyForUUIDUtil() {
-		return UUIDUtil.uuidFromIntArray(new int[]{0, 0, 0, 0});
 	}
 }

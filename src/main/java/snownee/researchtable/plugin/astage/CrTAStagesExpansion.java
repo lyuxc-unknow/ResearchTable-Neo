@@ -25,27 +25,23 @@ public class CrTAStagesExpansion {
 
 	@ZenCodeType.Method
 	public static ResearchBuilder setRewardStages(ResearchBuilder builder, @Nonnull String... stages) {
-		builder.rewards.add(new RewardUnlockStages(stages));
-		return builder;
+		return builder.addReward(new RewardUnlockStages(stages));
 	}
 
 	@ZenCodeType.Method
 	public static ResearchBuilder setTriggerStages(ResearchBuilder builder, @Nonnull String... stages) {
-		builder.triggers.add(new RewardUnlockStages(stages));
-		return builder;
+		return builder.addTrigger(new RewardUnlockStages(stages));
 	}
 
 	@ZenCodeType.Method
 	public static ResearchBuilder setRequiredStages(ResearchBuilder builder, @Nonnull String... stages) {
 		Set<String> set = ImmutableSet.copyOf(stages);
-		builder.criteria.add(new CriterionStages(set, set.size()));
-		return builder;
+		return builder.addCriterion(new CriterionStages(set, set.size()));
 	}
 
 	@ZenCodeType.Method
 	public static ResearchBuilder setOptionalStages(ResearchBuilder builder, int amount, @Nonnull String... stages) {
 		Set<String> set = ImmutableSet.copyOf(stages);
-		builder.criteria.add(new CriterionStages(set, amount));
-		return builder;
+		return builder.addCriterion(new CriterionStages(set, amount));
 	}
 }

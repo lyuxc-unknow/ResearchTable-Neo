@@ -32,15 +32,15 @@ public class ConditionCrTItem implements ICondition<ItemStack> {
 	}
 
 	public ConditionCrTItem(IIngredient ingredient, long count) {
-		this.count = count;
+		this.count = Math.max(0, count);
 		this.ingredient = ingredient;
 		this.displayItems = extractDisplayItems(ingredient);
 	}
 
 	private ConditionCrTItem(List<ItemStack> displayItems, long count, @Nullable String customName) {
 		this.ingredient = null;
-		this.count = count;
-		this.displayItems = displayItems;
+		this.count = Math.max(0, count);
+		this.displayItems = copyDisplayItems(displayItems);
 		this.customName = customName;
 	}
 
@@ -51,13 +51,22 @@ public class ConditionCrTItem implements ICondition<ItemStack> {
 		}
 		List<ItemStack> out = new ArrayList<>(items.length);
 		for (IItemStack item : items) {
-			if (item == null) continue;
+			if (item == null) {
+				continue;
+			}
 			ItemStack vanilla = item.getInternal();
 			if (!vanilla.isEmpty()) {
 				out.add(vanilla.copy());
 			}
 		}
-		return out;
+		return List.copyOf(out);
+	}
+
+	private static List<ItemStack> copyDisplayItems(List<ItemStack> items) {
+		return items.stream()
+				.filter(stack -> !stack.isEmpty())
+				.map(ItemStack::copy)
+				.toList();
 	}
 
 	@Override
@@ -65,7 +74,7 @@ public class ConditionCrTItem implements ICondition<ItemStack> {
 		if (e.isEmpty() || ingredient == null) {
 			return 0;
 		}
-		// Probe with an inflated count so IIngredient.matches checks only item identity, not amount —
+		// Probe with an inflated count so IIngredient.matches checks only item identity, not amount;
 		// otherwise a goal of `item * 5` rejects any single stack with fewer than 5, preventing partial submissions.
 		ItemStack probe = e.copy();
 		probe.setCount(Integer.MAX_VALUE);
@@ -87,7 +96,7 @@ public class ConditionCrTItem implements ICondition<ItemStack> {
 	}
 
 	public List<ItemStack> getDisplayItems() {
-		return displayItems;
+		return copyDisplayItems(displayItems);
 	}
 
 	@Nullable

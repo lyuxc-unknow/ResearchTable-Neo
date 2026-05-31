@@ -10,7 +10,7 @@ public class RewardExperience implements IReward {
 	private final boolean asLevels;
 
 	public RewardExperience(int amount, boolean asLevels) {
-		this.amount = amount;
+		this.amount = Math.max(0, amount);
 		this.asLevels = asLevels;
 	}
 

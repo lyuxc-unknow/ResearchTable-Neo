@@ -1,20 +1,18 @@
 package snownee.researchtable.block;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
-import com.google.common.base.Objects;
-
 import com.mojang.authlib.GameProfile;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
@@ -50,10 +48,7 @@ import snownee.researchtable.plugin.minecraft.ExperienceHelper;
 @ParametersAreNonnullByDefault
 public class TableBlockEntity extends BlockEntity implements MenuProvider {
 
-	public class ResearchItemWrapper implements IItemHandler {
-
-		ResearchItemWrapper() {
-		}
+	private final class ResearchItemWrapper implements IItemHandler {
 
 		@Override
 		public int getSlots() {
@@ -92,7 +87,7 @@ public class TableBlockEntity extends BlockEntity implements MenuProvider {
 		}
 	}
 
-	public class ResearchEnergyWrapper implements IEnergyStorage {
+	private final class ResearchEnergyWrapper implements IEnergyStorage {
 
 		@Override
 		public int receiveEnergy(int maxReceive, boolean simulate) {
@@ -129,10 +124,7 @@ public class TableBlockEntity extends BlockEntity implements MenuProvider {
 
 	}
 
-	public class ResearchFluidWrapper implements IFluidHandler {
-
-		public ResearchFluidWrapper() {
-		}
+	private final class ResearchFluidWrapper implements IFluidHandler {
 
 		@Override
 		public int getTanks() {
@@ -236,7 +228,7 @@ public class TableBlockEntity extends BlockEntity implements MenuProvider {
 		if (this.ownerUUID == null) {
 			this.ownerUUID = uuid;
 		} else {
-			ResearchTable.logger.debug("An attempt of re-setting research table owner uuid occurred. Action aborted.");
+			ResearchTable.LOGGER.debug("An attempt of re-setting research table owner uuid occurred. Action aborted.");
 		}
 	}
 
@@ -363,18 +355,20 @@ public class TableBlockEntity extends BlockEntity implements MenuProvider {
 		if (r == null || progress == null) {
 			return 0;
 		}
-		List<ICondition> conditions = r.getConditions();
+		List<ICondition<?>> conditions = r.getConditions();
 		if (conditions.isEmpty()) {
 			return 100;
 		}
 		double sum = 0;
+		int countedConditions = 0;
 		for (int i = 0; i < conditions.size(); i++) {
 			if (conditions.get(i).getGoal() == 0) {
 				continue;
 			}
 			sum += (double) progress[i] / conditions.get(i).getGoal();
+			countedConditions++;
 		}
-		return (float) (sum / conditions.size()) * 100;
+		return countedConditions == 0 ? 100 : (float) (sum / countedConditions) * 100;
 	}
 
 	public long getProgress(int index) {
@@ -398,7 +392,7 @@ public class TableBlockEntity extends BlockEntity implements MenuProvider {
 		}
 		return ownerUUID == null
 				|| player.getGameProfile().getId().equals(this.ownerUUID)
-				|| Objects.equal(TeamHelper.provider.getOwner(player.getGameProfile().getId()), ownerUUID);
+				|| Objects.equals(TeamHelper.provider.getOwner(player.getGameProfile().getId()), ownerUUID);
 	}
 
 	public boolean canComplete() {
@@ -412,7 +406,7 @@ public class TableBlockEntity extends BlockEntity implements MenuProvider {
 			setChanged();
 			return;
 		}
-		List<ICondition> conditions = r.getConditions();
+		List<ICondition<?>> conditions = r.getConditions();
 		if (progress.length != conditions.size()) {
 			// Out-of-sync after /reload; rebuild and re-evaluate.
 			progress = new long[conditions.size()];
@@ -465,29 +459,34 @@ public class TableBlockEntity extends BlockEntity implements MenuProvider {
 		if (r == null || progress == null) {
 			return 0;
 		}
-		List<ICondition> conditions = r.getConditions();
+		List<ICondition<?>> conditions = r.getConditions();
 		long matched = 0;
 		for (int i = 0; i < conditions.size(); ++i) {
+			ICondition<?> rawCondition = conditions.get(i);
+			if (!Objects.equals(rawCondition.getMatchType(), type)) {
+				continue;
+			}
+			long remaining = rawCondition.getGoal() - progress[i];
+			if (remaining <= 0) {
+				continue;
+			}
 			@SuppressWarnings("unchecked")
-			ICondition<T> condition = (ICondition<T>) conditions.get(i);
-			if (condition.getMatchType() == type) {
-				long matchedIn = condition.matches(e);
-				if (matchedIn < 0) {
-					matchedIn = 0;
-				}
-				if (matchedIn > condition.getGoal() - progress[i]) {
-					matchedIn = condition.getGoal() - progress[i];
-				}
-				if (matched + matchedIn < matched) {
-					matchedIn = Long.MAX_VALUE - matched;
-				}
+			ICondition<T> condition = (ICondition<T>) rawCondition;
+			long matchedIn = condition.matches(e);
+			if (matchedIn <= 0) {
+				continue;
+			}
+			matchedIn = Math.min(matchedIn, remaining);
+			if (Long.MAX_VALUE - matched < matchedIn) {
+				matched = Long.MAX_VALUE;
+			} else {
 				matched += matchedIn;
-				if (matchedIn > 0 && !simulate) {
-					progress[i] += matchedIn;
-				}
-				if (matched == Long.MAX_VALUE) {
-					break;
-				}
+			}
+			if (!simulate) {
+				progress[i] += matchedIn;
+			}
+			if (matched == Long.MAX_VALUE) {
+				break;
 			}
 		}
 		if (matched > 0 && !simulate) {
@@ -528,11 +527,6 @@ public class TableBlockEntity extends BlockEntity implements MenuProvider {
 			return null;
 		}
 		return cache.get(uuid).map(GameProfile::getName).orElse(null);
-	}
-
-	@SuppressWarnings("unused")
-	private static UUID touchUUIDUtil() {
-		return UUIDUtil.uuidFromIntArray(new int[]{0, 0, 0, 0});
 	}
 
 	@Override

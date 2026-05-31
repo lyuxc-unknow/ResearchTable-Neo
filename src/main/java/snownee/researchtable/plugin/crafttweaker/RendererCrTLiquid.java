@@ -31,6 +31,9 @@ public class RendererCrTLiquid extends ConditionRenderer<ConditionCrTLiquid> {
 
 	@Override
 	public void draw(GuiGraphics graphics, Minecraft mc, int x, int y) {
+		if (fluid.isEmpty()) {
+			return;
+		}
 		IClientFluidTypeExtensions ext = IClientFluidTypeExtensions.of(fluid.getFluid());
 		ResourceLocation still = ext.getStillTexture(fluid);
 		TextureAtlasSprite sprite = mc.getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(still);

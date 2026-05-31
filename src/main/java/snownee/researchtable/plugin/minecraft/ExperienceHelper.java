@@ -11,8 +11,12 @@ public final class ExperienceHelper {
 	}
 
 	public static int xpToReachNextLevel(int level) {
-		if (level >= 30) return 112 + (level - 30) * 9;
-		if (level >= 15) return 37 + (level - 15) * 5;
+		if (level >= 30) {
+			return 112 + (level - 30) * 9;
+		}
+		if (level >= 15) {
+			return 37 + (level - 15) * 5;
+		}
 		return 7 + level * 2;
 	}
 

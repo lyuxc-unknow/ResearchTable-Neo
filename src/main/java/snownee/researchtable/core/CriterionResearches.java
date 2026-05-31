@@ -3,6 +3,7 @@ package snownee.researchtable.core;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -19,8 +20,9 @@ public class CriterionResearches implements ICriterion {
 	private final int r;
 
 	public CriterionResearches(Collection<String> researches, int requirement) {
-		this.r = requirement > 0 ? requirement : researches.size();
-		this.researches = researches;
+		this.researches = List.copyOf(researches);
+		int target = requirement > 0 ? requirement : this.researches.size();
+		this.r = Math.min(target, this.researches.size());
 	}
 
 	@Override
@@ -40,8 +42,9 @@ public class CriterionResearches implements ICriterion {
 		boolean first = true;
 		for (String research : researches) {
 			Optional<Research> result = ResearchList.find(research);
-			if (result.isEmpty())
+			if (result.isEmpty()) {
 				continue;
+			}
 			if (!first) {
 				sb.append(ChatFormatting.RESET).append(", ");
 			}

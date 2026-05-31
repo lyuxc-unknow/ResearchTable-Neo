@@ -19,8 +19,8 @@ public final class ResearchList {
 	public static final Map<String, Research> LIST = Maps.newLinkedHashMap();
 
 	// Bumped from the reload listener's `prepare` (off-thread, before any `apply`).
-	// `add()` compares against `lastAppliedEpoch` and clears state on the first add of a new reload,
-	// so the bump is guaranteed to be visible before CrT re-runs scripts regardless of listener registration order.
+	// Mutating CrT entrypoints compare against `lastAppliedEpoch` and clear state on first use of a
+	// new reload, so the bump is visible before CrT re-runs scripts regardless of listener order.
 	private static volatile int reloadEpoch = 0;
 	private static int lastAppliedEpoch = -1;
 
@@ -35,19 +35,27 @@ public final class ResearchList {
 		reloadEpoch++;
 	}
 
-	public static synchronized void clear() {
+	private static void clearState() {
 		LIST.clear();
 		CATEGORIES.clear();
 		ResearchTable.scores = null;
 		ResearchTable.scoreFormattingText = null;
+	}
+
+	public static synchronized void clear() {
+		clearState();
+		lastAppliedEpoch = reloadEpoch;
 		clientVersion++;
 	}
 
-	public static synchronized boolean add(Research research) {
+	public static synchronized void ensureReloadApplied() {
 		if (reloadEpoch != lastAppliedEpoch) {
 			clear();
-			lastAppliedEpoch = reloadEpoch;
 		}
+	}
+
+	public static synchronized boolean add(Research research) {
+		ensureReloadApplied();
 		if (LIST.containsKey(research.getName())) {
 			return false;
 		}
@@ -55,6 +63,17 @@ public final class ResearchList {
 			CATEGORIES.add(research.getCategory());
 		}
 		LIST.put(research.getName(), research);
+		return true;
+	}
+
+	public static synchronized boolean remove(String name) {
+		ensureReloadApplied();
+		Research removed = LIST.remove(name);
+		if (removed == null) {
+			return false;
+		}
+		CATEGORIES.removeIf(category -> LIST.values().stream().noneMatch(research -> research.getCategory() == category));
+		clientVersion++;
 		return true;
 	}
 
@@ -68,10 +87,10 @@ public final class ResearchList {
 	 * left empty since the client never executes them.
 	 */
 	public static synchronized void applySnapshot(PacketSyncResearchList packet) {
-		clear();
+		clearState();
 
 		ResearchTable.scoreFormattingText = packet.scoreFormattingText;
-		ResearchTable.scores = packet.scores == null || packet.scores.length == 0 ? null : packet.scores;
+		ResearchTable.scores = packet.scores == null || packet.scores.length == 0 ? null : packet.scores.clone();
 
 		List<ResearchCategory> rebuilt = new ArrayList<>(packet.categories.size());
 		for (PacketSyncResearchList.CategorySnapshot c : packet.categories) {
@@ -88,8 +107,7 @@ public final class ResearchList {
 			if (cat == null) {
 				continue;
 			}
-			@SuppressWarnings({"rawtypes", "unchecked"})
-			List<ICondition> conditions = new ArrayList<>((List) s.conditions());
+			List<ICondition<?>> conditions = new ArrayList<>(s.conditions());
 			Research research = new Research(
 					s.name(),
 					cat,

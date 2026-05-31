@@ -1,6 +1,7 @@
 package snownee.researchtable.plugin.minecraft;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -18,7 +19,7 @@ public class CriterionDimension implements ICriterion {
 	private final Set<ResourceLocation> dimensions;
 
 	public CriterionDimension(Set<ResourceLocation> dimensions) {
-		this.dimensions = dimensions;
+		this.dimensions = Collections.unmodifiableSet(new LinkedHashSet<>(dimensions));
 	}
 
 	@Override

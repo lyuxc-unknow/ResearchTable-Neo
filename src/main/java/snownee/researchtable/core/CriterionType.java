@@ -38,7 +38,10 @@ public final class CriterionType<C extends ICriterion> {
 
 	public static <C extends ICriterion> CriterionType<C> register(ResourceLocation id, Writer<C> w, Reader<C> r) {
 		CriterionType<C> type = new CriterionType<>(id, w, r);
-		REGISTRY.put(id, type);
+		CriterionType<?> previous = REGISTRY.putIfAbsent(id, type);
+		if (previous != null) {
+			throw new IllegalStateException("Duplicate ICriterion type: " + id);
+		}
 		return type;
 	}
 

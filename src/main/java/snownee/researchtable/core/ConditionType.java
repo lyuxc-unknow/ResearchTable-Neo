@@ -38,7 +38,10 @@ public final class ConditionType<C extends ICondition<?>> {
 
 	public static <C extends ICondition<?>> ConditionType<C> register(ResourceLocation id, Writer<C> w, Reader<C> r) {
 		ConditionType<C> type = new ConditionType<>(id, w, r);
-		REGISTRY.put(id, type);
+		ConditionType<?> previous = REGISTRY.putIfAbsent(id, type);
+		if (previous != null) {
+			throw new IllegalStateException("Duplicate ICondition type: " + id);
+		}
 		return type;
 	}
 

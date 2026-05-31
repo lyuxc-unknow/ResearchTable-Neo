@@ -3,10 +3,9 @@ package snownee.researchtable.client.gui.screen;
 import java.util.ArrayList;
 import java.util.IllegalFormatException;
 import java.util.List;
+import java.util.Objects;
 
 import javax.annotation.ParametersAreNonnullByDefault;
-
-import org.jetbrains.annotations.NotNull;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 
@@ -52,9 +51,8 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 	private static final ResourceLocation BUTTON_HOVERED = ResearchTable.id("textures/gui/button_hovered.png");
 	private static final ResourceLocation BUTTON_DISABLED = ResearchTable.id("textures/gui/button_disabled.png");
 
-	public static CompoundTag data = new CompoundTag();
-
 	private final List<Research> researches = new ArrayList<>();
+	private CompoundTag data = new CompoundTag();
 	private ResearchCategory currentCategory;
 	private Research selected;
 	private int scroll;
@@ -135,6 +133,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 	}
 
 	private void buildScoreText() {
+		scoreText = null;
 		if (ResearchTable.scoreFormattingText == null || ResearchTable.scores == null) {
 			return;
 		}
@@ -274,6 +273,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		if (tile != null && tile.hasChanged) {
 			data = tile.getData();
 			updateResearchList();
+			buildScoreText();
 			refreshButtons();
 			tile.hasChanged = false;
 		}
@@ -326,9 +326,15 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		int buttonRowTop = top;
 		int gap = 4;
 		int totalWidth = 0;
-		if (submitButton.visible) totalWidth += submitButton.getWidth();
-		if (actionButton.visible) totalWidth += actionButton.getWidth();
-		if (submitButton.visible && actionButton.visible) totalWidth += gap;
+		if (submitButton.visible) {
+			totalWidth += submitButton.getWidth();
+		}
+		if (actionButton.visible) {
+			totalWidth += actionButton.getWidth();
+		}
+		if (submitButton.visible && actionButton.visible) {
+			totalWidth += gap;
+		}
 		int bx = rightPanel - totalWidth - 4;
 		if (submitButton.visible) {
 			submitButton.setX(bx);
@@ -452,7 +458,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		// Conditions (research requirements) — clipped to MAX_VISIBLE_CONDITIONS rows, extras scroll.
 		TableBlockEntity tile = menu.getTile();
 		Research researching = tile != null ? tile.getResearch() : null;
-		List<ICondition> conditions = selected.getConditions();
+		List<ICondition<?>> conditions = selected.getConditions();
 		renderScrollableConditions(g, leftPanel, top, rightPanel, conditions, researching == selected);
 		int visibleConditions = Math.min(conditions.size(), MAX_VISIBLE_CONDITIONS);
 		top += visibleConditions * CONDITION_ROW_HEIGHT;
@@ -461,8 +467,9 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		// Limit / failing texts — only when the player is not researching this one and the criteria block them.
 		if (researching != selected && !selected.canResearch(minecraft.player, data)) {
 			for (ICriterion criterion : selected.getCriteria()) {
-				if (criterion.matches(minecraft.player, data))
+				if (criterion.matches(minecraft.player, data)) {
 					continue;
+				}
 				String failingText = criterion.getFailingText(minecraft.player, data);
 				List<FormattedCharSequence> lines = font.split(Component.literal(failingText), contentWidth);
 				for (FormattedCharSequence line : lines) {
@@ -474,7 +481,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 	}
 
 	private void renderScrollableConditions(GuiGraphics g, int leftPanel, int top, int rightPanel,
-			List<ICondition> conditions, boolean isResearching) {
+			List<ICondition<?>> conditions, boolean isResearching) {
 		int visibleRows = Math.min(conditions.size(), MAX_VISIBLE_CONDITIONS);
 		condViewportLeft = leftPanel;
 		condViewportRight = rightPanel;
@@ -484,8 +491,12 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 
 		boolean needsScrollbar = conditions.size() > MAX_VISIBLE_CONDITIONS;
 		int maxScroll = Math.max(0, condContentHeight - condViewportHeight);
-		if (conditionScroll < 0) conditionScroll = 0;
-		if (conditionScroll > maxScroll) conditionScroll = maxScroll;
+		if (conditionScroll < 0) {
+			conditionScroll = 0;
+		}
+		if (conditionScroll > maxScroll) {
+			conditionScroll = maxScroll;
+		}
 
 		if (condViewportHeight <= 0) {
 			return;
@@ -535,8 +546,12 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		descContentHeight = lines.size() * font.lineHeight;
 
 		int maxScroll = Math.max(0, descContentHeight - descViewportHeight);
-		if (descScroll < 0) descScroll = 0;
-		if (descScroll > maxScroll) descScroll = maxScroll;
+		if (descScroll < 0) {
+			descScroll = 0;
+		}
+		if (descScroll > maxScroll) {
+			descScroll = maxScroll;
+		}
 
 		g.enableScissor(descViewportLeft, descViewportTop, descViewportRight, descViewportTop + descViewportHeight);
 		int y = descViewportTop - descScroll;
@@ -557,7 +572,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		}
 	}
 
-	private void renderCondition(GuiGraphics g, int left, int top, int barRight, ICondition condition, int idx, boolean isResearching) {
+	private void renderCondition(GuiGraphics g, int left, int top, int barRight, ICondition<?> condition, int idx, boolean isResearching) {
 		TableBlockEntity tile = menu.getTile();
 		long target = condition.getGoal();
 		long current = isResearching && tile != null ? tile.getProgress(idx) : 0;
@@ -570,16 +585,17 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		if (isResearching && target > 0) {
 			double progress = (double) current / (double) target;
 			progress = Math.clamp(progress, 0, 1);
-			/// 约束用于渲染的progress进度，限制在0.01至0.99之间防止进度条渲染时超出进度框
-			var progressStyle = Math.clamp(progress, 0.01, 0.9999);
-			int fillRight = left + (int) ((barRight - left) * progressStyle);
-			g.fill(left + 1, top + 1, fillRight, top + 21, 0xFF7BC97B);
+			int innerLeft = left + 1;
+			int innerRight = barRight - 1;
+			int fillRight = innerLeft + (int) Math.round((innerRight - innerLeft) * progress);
+			if (fillRight > innerLeft) {
+				g.fill(innerLeft, top + 1, fillRight, top + 21, 0xFF7BC97B);
+			}
 			String pct = String.format("%d%%", (int) (progress * 100));
 			g.drawString(font, pct, barRight - font.width(pct) - 4, top + 7, 0x202020, false);
 		}
 
-		@SuppressWarnings({"rawtypes"})
-		ConditionRenderer renderer = ConditionRenderer.get(condition);
+		ConditionRenderer<?> renderer = ConditionRenderer.get(condition);
 		if (renderer != null) {
 			renderer.draw(g, minecraft, left + 3, top + 3);
 			String text = renderer.name();
@@ -595,13 +611,13 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		}
 	}
 
-	private String describeCondition(ICondition condition) {
+	private String describeCondition(ICondition<?> condition) {
 		String type;
-		if (condition.getMatchType() == ConditionTypes.ITEM) {
+		if (Objects.equals(condition.getMatchType(), ConditionTypes.ITEM)) {
 			type = "Item";
-		} else if (condition.getMatchType() == ConditionTypes.FLUID) {
+		} else if (Objects.equals(condition.getMatchType(), ConditionTypes.FLUID)) {
 			type = "Fluid";
-		} else if (condition.getMatchType() == ConditionTypes.ENERGY) {
+		} else if (Objects.equals(condition.getMatchType(), ConditionTypes.ENERGY)) {
 			type = I18n.get(ResearchTable.MODID + ".gui.fe");
 		} else {
 			type = condition.getClass().getSimpleName();
@@ -613,7 +629,8 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		if (scoreText == null || scoreText.isEmpty()) {
 			return;
 		}
-		int x = leftPos + imageWidth - 18;
+		int listLeft = leftPos + ((ResearchList.CATEGORIES.size() > 1) ? 24 : 0);
+		int x = listLeft + listWidth - 18;
 		int y = topPos + imageHeight - 18;
 		RenderSystem.setShaderColor(1, 1, 1, 1);
 		g.blit(GLOBE, x, y, 0, 0, 11, 10, 11, 10);
@@ -627,7 +644,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		if (button == 0) {
 			// Tab click
 			if (ResearchList.CATEGORIES.size() > 1) {
-				int x = leftPos + 2, y = topPos + 2;
+				int x = leftPos + 2, y = topPos + 4;
 				for (ResearchCategory cat : ResearchList.CATEGORIES) {
 					if (mouseX >= x && mouseX < x + 20 && mouseY >= y && mouseY < y + 20) {
 						currentCategory = cat;
@@ -695,7 +712,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 	}
 
 	@Override
-	protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
+	protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
 		// Disable default labels rendering.
 	}
 

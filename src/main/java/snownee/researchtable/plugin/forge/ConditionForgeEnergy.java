@@ -11,12 +11,12 @@ public class ConditionForgeEnergy implements ICondition<Long> {
 	private final long count;
 
 	public ConditionForgeEnergy(long count) {
-		this.count = count;
+		this.count = Math.max(0, count);
 	}
 
 	@Override
 	public long matches(Long e) {
-		return e;
+		return Math.max(0, e);
 	}
 
 	@Override

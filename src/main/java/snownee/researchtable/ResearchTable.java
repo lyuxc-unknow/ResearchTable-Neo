@@ -21,6 +21,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
+import snownee.researchtable.client.ClientInit;
 import snownee.researchtable.command.CommandResearch;
 import snownee.researchtable.core.CriterionResearchCount;
 import snownee.researchtable.core.CriterionResearches;
@@ -31,6 +32,7 @@ import snownee.researchtable.plugin.astage.CriterionStages;
 import snownee.researchtable.plugin.crafttweaker.ConditionCrTItem;
 import snownee.researchtable.plugin.crafttweaker.ConditionCrTLiquid;
 import snownee.researchtable.plugin.forge.ConditionForgeEnergy;
+import snownee.researchtable.plugin.ftbteam.FTBTeamProvider;
 import snownee.researchtable.plugin.minecraft.ConditionExperience;
 import snownee.researchtable.plugin.minecraft.CriterionBiome;
 import snownee.researchtable.plugin.minecraft.CriterionDimension;
@@ -46,7 +48,7 @@ public class ResearchTable {
 	public static String scoreFormattingText;
 	public static String[] scores;
 
-	public static Logger logger = LogManager.getLogger(NAME);
+	public static final Logger LOGGER = LogManager.getLogger(NAME);
 
 	public ResearchTable(IEventBus modBus, ModContainer container) {
 		Registration.register(modBus);
@@ -55,7 +57,7 @@ public class ResearchTable {
 		ModConfig.register(container);
 		NeoForge.EVENT_BUS.register(CommandResearch.class);
 		if (FMLEnvironment.dist == Dist.CLIENT) {
-			snownee.researchtable.client.ClientInit.register(container);
+			ClientInit.register(container);
 		}
 	}
 
@@ -101,7 +103,7 @@ public class ResearchTable {
 	}
 
 	private static void initFTBTeams() {
-		snownee.researchtable.plugin.ftbteam.FTBTeamProvider.init();
+		FTBTeamProvider.init();
 	}
 
 	@SubscribeEvent
@@ -114,17 +116,25 @@ public class ResearchTable {
 		Scoreboard scoreboard = player.level().getScoreboard();
 		CompoundTag helper = event.getTable().getData();
 
+		boolean changed = false;
 		for (String s : scores) {
+			String key = "score." + s;
+			int i = 0;
 			Objective objective = scoreboard.getObjective(s);
-			if (objective == null) {
-				continue;
+			if (objective != null) {
+				ReadOnlyScoreInfo info = scoreboard.getPlayerScoreInfo(player, objective);
+				if (info != null) {
+					i = info.value();
+				}
 			}
-			ReadOnlyScoreInfo info = scoreboard.getPlayerScoreInfo(player, objective);
-			if (info == null) {
-				continue;
+			if (!helper.contains(key) || helper.getInt(key) != i) {
+				helper.putInt(key, i);
+				changed = true;
 			}
-			int i = info.value();
-			helper.putInt("score." + s, i);
+		}
+		if (changed) {
+			event.getTable().hasChanged = true;
+			event.getTable().setChanged();
 		}
 	}
 }

@@ -27,17 +27,18 @@ public class CrTPlugin {
 
 	@ZenCodeType.Method
 	public static boolean remove(@Nonnull String name) {
-		return ResearchList.LIST.remove(name) != null;
+		return ResearchList.remove(name);
 	}
 
 	@ZenCodeType.Method
 	public static void removeAll() {
-		ResearchList.LIST.clear();
+		ResearchList.clear();
 	}
 
 	@ZenCodeType.Method
 	public static void scoreIndicator(String formattingText, String... scores) {
+		ResearchList.ensureReloadApplied();
 		ResearchTable.scoreFormattingText = formattingText;
-		ResearchTable.scores = scores;
+		ResearchTable.scores = scores.clone();
 	}
 }

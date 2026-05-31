@@ -1,6 +1,7 @@
 package snownee.researchtable.network;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -20,6 +21,10 @@ public record PacketSyncClient(Object2IntMap<String> map) implements CustomPacke
 				CompoundTag tag = ByteBufCodecs.COMPOUND_TAG.decode(buf);
 				return new PacketSyncClient(DataStorage.readPlayerData(tag));
 			});
+
+	public PacketSyncClient {
+		map = new Object2IntOpenHashMap<>(map);
+	}
 
 	@Override
 	public Type<? extends CustomPacketPayload> type() {

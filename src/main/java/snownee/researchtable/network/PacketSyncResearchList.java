@@ -7,8 +7,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.jetbrains.annotations.NotNull;
-
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -45,10 +43,10 @@ public final class PacketSyncResearchList implements CustomPacketPayload {
 			List<ResearchSnapshot> researches,
 			@Nullable String scoreFormattingText,
 			String[] scores) {
-		this.categories = categories;
-		this.researches = researches;
+		this.categories = List.copyOf(categories);
+		this.researches = List.copyOf(researches);
 		this.scoreFormattingText = scoreFormattingText;
-		this.scores = scores;
+		this.scores = scores.clone();
 	}
 
 	public static PacketSyncResearchList fromCurrentState() {
@@ -59,8 +57,7 @@ public final class PacketSyncResearchList implements CustomPacketPayload {
 		List<ResearchSnapshot> resz = new ArrayList<>(ResearchList.LIST.size());
 		for (Research r : ResearchList.LIST.values()) {
 			int idx = ResearchList.CATEGORIES.indexOf(r.getCategory());
-			@SuppressWarnings({"rawtypes", "unchecked"})
-			List<ICondition<?>> conds = new ArrayList<ICondition<?>>((Collection) r.getConditions());
+			List<ICondition<?>> conds = new ArrayList<>(r.getConditions());
 			resz.add(new ResearchSnapshot(
 					r.getName(),
 					idx,
@@ -173,15 +170,31 @@ public final class PacketSyncResearchList implements CustomPacketPayload {
 	}
 
 	@Override
-	public @NotNull Type<? extends CustomPacketPayload> type() {
+	public Type<? extends CustomPacketPayload> type() {
 		return TYPE;
 	}
 
 	public record CategorySnapshot(ItemStack icon, @Nullable String nameKey) {
+		public CategorySnapshot {
+			icon = icon.copy();
+		}
+
+		@Override
+		public ItemStack icon() {
+			return icon.copy();
+		}
 	}
 
 	public record ResearchSnapshot(String name, int categoryIdx, String title, String description,
 	                               List<ItemStack> icons, Collection<? extends ICondition<?>> conditions,
 	                               Collection<? extends ICriterion> criteria) {
+		public ResearchSnapshot {
+			icons = icons.stream()
+					.filter(stack -> !stack.isEmpty())
+					.map(ItemStack::copy)
+					.toList();
+			conditions = List.copyOf(conditions);
+			criteria = List.copyOf(criteria);
 		}
+	}
 }

@@ -3,6 +3,7 @@ package snownee.researchtable.plugin.astage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import com.alessandro.astages.api.holder.AHolder;
@@ -22,8 +23,9 @@ public class CriterionStages implements ICriterion {
 	private final int r;
 
 	public CriterionStages(Collection<String> stages, int requirement) {
-		this.r = requirement > 0 ? requirement : stages.size();
-		this.stages = stages;
+		this.stages = List.copyOf(stages);
+		int target = requirement > 0 ? requirement : this.stages.size();
+		this.r = Math.min(target, this.stages.size());
 	}
 
 	@Override

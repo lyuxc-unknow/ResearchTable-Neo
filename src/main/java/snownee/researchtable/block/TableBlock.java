@@ -110,14 +110,16 @@ public class TableBlock extends HorizontalDirectionalBlock implements EntityBloc
 				if (!drained.isEmpty()) {
 					int filled = fluidDestination.fill(drained, IFluidHandler.FluidAction.SIMULATE);
 					if (filled > 0) {
-						FluidStack reallyDrained = fluidHandler.drain(filled, IFluidHandler.FluidAction.EXECUTE);
-						fluidDestination.fill(reallyDrained, IFluidHandler.FluidAction.EXECUTE);
-						if (!player.isCreative()) {
-							if (stack.getCount() > 1) {
-								stack.shrink(1);
-								ItemHandlerHelper.giveItemToPlayer(player, fluidHandler.getContainer());
-							} else {
-								player.setItemInHand(hand, fluidHandler.getContainer());
+						if (!level.isClientSide) {
+							FluidStack reallyDrained = fluidHandler.drain(filled, IFluidHandler.FluidAction.EXECUTE);
+							fluidDestination.fill(reallyDrained, IFluidHandler.FluidAction.EXECUTE);
+							if (!player.isCreative()) {
+								if (stack.getCount() > 1) {
+									stack.shrink(1);
+									ItemHandlerHelper.giveItemToPlayer(player, fluidHandler.getContainer());
+								} else {
+									player.setItemInHand(hand, fluidHandler.getContainer());
+								}
 							}
 						}
 						return ItemInteractionResult.sidedSuccess(level.isClientSide);

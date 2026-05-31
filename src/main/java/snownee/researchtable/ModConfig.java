@@ -20,10 +20,10 @@ public final class ModConfig {
 	private static final ModConfigSpec.BooleanValue NON_PRIVILEGED_MODE;
 
 	public static boolean guiFullScreen = true;
-	public static int guiHeight = 158;
-	public static int guiListWidth = 100;
+	public static int guiHeight = 180;
+	public static int guiListWidth = 120;
 	public static boolean guiListAutoWidth = true;
-	public static int guiDetailWidth = 150;
+	public static int guiDetailWidth = 200;
 	public static boolean hideUnavailableResearch = false;
 	public static boolean hideCompletedResearch = false;
 	public static boolean nonPrivilegedMode = false;

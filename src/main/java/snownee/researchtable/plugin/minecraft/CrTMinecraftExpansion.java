@@ -31,14 +31,12 @@ public class CrTMinecraftExpansion {
 
 	@ZenCodeType.Method
 	public static ResearchBuilder setRequiredBiomes(ResearchBuilder builder, @Nonnull String... biomes) {
-		builder.criteria.add(new CriterionBiome(parseIds(biomes)));
-		return builder;
+		return builder.addCriterion(new CriterionBiome(parseIds(biomes)));
 	}
 
 	@ZenCodeType.Method
 	public static ResearchBuilder setRequiredDimensions(ResearchBuilder builder, @Nonnull String... dimensions) {
-		builder.criteria.add(new CriterionDimension(parseIds(dimensions)));
-		return builder;
+		return builder.addCriterion(new CriterionDimension(parseIds(dimensions)));
 	}
 
 	@ZenCodeType.Method
@@ -49,44 +47,37 @@ public class CrTMinecraftExpansion {
 		} catch (IllegalArgumentException e) {
 			throw new IllegalArgumentException("Unknown weather '" + weather + "', expected one of: clear, rain, thunder");
 		}
-		builder.criteria.add(new CriterionWeather(w));
-		return builder;
+		return builder.addCriterion(new CriterionWeather(w));
 	}
 
 	@ZenCodeType.Method
 	public static ResearchBuilder setRequiredTime(ResearchBuilder builder, int min, int max) {
-		builder.criteria.add(new CriterionTime(min, max));
-		return builder;
+		return builder.addCriterion(new CriterionTime(min, max));
 	}
 
 	@ZenCodeType.Method
 	public static ResearchBuilder addXPCondition(ResearchBuilder builder, int amount) {
-		builder.conditions.add(new ConditionExperience(amount));
-		return builder;
+		return builder.addConditionInternal(new ConditionExperience(amount));
 	}
 
 	@ZenCodeType.Method
 	public static ResearchBuilder setRewardXP(ResearchBuilder builder, int points) {
-		builder.rewards.add(new RewardExperience(points, false));
-		return builder;
+		return builder.addReward(new RewardExperience(points, false));
 	}
 
 	@ZenCodeType.Method
 	public static ResearchBuilder setRewardXPLevels(ResearchBuilder builder, int levels) {
-		builder.rewards.add(new RewardExperience(levels, true));
-		return builder;
+		return builder.addReward(new RewardExperience(levels, true));
 	}
 
 	@ZenCodeType.Method
 	public static ResearchBuilder setTriggerXP(ResearchBuilder builder, int points) {
-		builder.triggers.add(new RewardExperience(points, false));
-		return builder;
+		return builder.addTrigger(new RewardExperience(points, false));
 	}
 
 	@ZenCodeType.Method
 	public static ResearchBuilder setTriggerXPLevels(ResearchBuilder builder, int levels) {
-		builder.triggers.add(new RewardExperience(levels, true));
-		return builder;
+		return builder.addTrigger(new RewardExperience(levels, true));
 	}
 
 	private static Set<ResourceLocation> parseIds(String[] ids) {

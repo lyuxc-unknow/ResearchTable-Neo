@@ -1,6 +1,7 @@
 package snownee.researchtable.plugin.minecraft;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -20,7 +21,7 @@ public class CriterionBiome implements ICriterion {
 	private final Set<ResourceLocation> biomes;
 
 	public CriterionBiome(Set<ResourceLocation> biomes) {
-		this.biomes = biomes;
+		this.biomes = Collections.unmodifiableSet(new LinkedHashSet<>(biomes));
 	}
 
 	@Override

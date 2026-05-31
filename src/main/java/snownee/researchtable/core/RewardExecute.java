@@ -4,6 +4,7 @@ import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec2;
@@ -21,19 +22,18 @@ public class RewardExecute implements IReward {
 	@Override
 	public void earn(Level world, BlockPos pos, Player player) {
 		MinecraftServer server = player.getServer();
-		if (server == null) {
+		if (server == null || !(world instanceof ServerLevel serverLevel)) {
 			return;
 		}
 		CommandSourceStack source;
 		if (ModConfig.nonPrivilegedMode) {
 			source = player.createCommandSourceStack();
 		} else {
-			player.getDisplayName();
 			source = new CommandSourceStack(
 					CommandSource.NULL,
 					Vec3.atCenterOf(pos),
 					Vec2.ZERO,
-					(net.minecraft.server.level.ServerLevel) world,
+					serverLevel,
 					2,
 					player.getName().getString(),
 					player.getDisplayName(),

@@ -15,7 +15,7 @@ public record PacketResearchChanged(BlockPos pos, String researchName, Action ac
 	public static final StreamCodec<RegistryFriendlyByteBuf, PacketResearchChanged> STREAM_CODEC = StreamCodec.composite(
 			BlockPos.STREAM_CODEC, PacketResearchChanged::pos,
 			ByteBufCodecs.STRING_UTF8, PacketResearchChanged::researchName,
-			ByteBufCodecs.idMapper(i -> Action.values()[i % Action.values().length], Action::ordinal), PacketResearchChanged::action,
+			ByteBufCodecs.idMapper(i -> Action.values()[Math.floorMod(i, Action.values().length)], Action::ordinal), PacketResearchChanged::action,
 			PacketResearchChanged::new);
 
 	@Override
