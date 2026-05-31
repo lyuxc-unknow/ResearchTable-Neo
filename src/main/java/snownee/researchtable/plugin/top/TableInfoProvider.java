@@ -6,7 +6,7 @@ import mcjty.theoneprobe.api.IProbeInfoProvider;
 import mcjty.theoneprobe.api.ProbeMode;
 import mcjty.theoneprobe.apiimpl.styles.ProgressStyle;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.resources.language.I18n;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -31,15 +31,12 @@ public class TableInfoProvider implements IProbeInfoProvider {
 				BlockEntity tile = level.getBlockEntity(iProbeHitData.getPos());
 				if (tile instanceof TableBlockEntity table) {
 					if (!table.ownerName.isEmpty()) {
-						iProbeInfo.text(I18n.get(ResearchTable.MODID + ".gui.owner", ChatFormatting.WHITE + table.ownerName));
+						iProbeInfo.text(Component.translatable(ResearchTable.MODID + ".gui.owner", ChatFormatting.WHITE + table.ownerName));
 					}
 					Research research = table.getResearch();
 					if (research != null) {
-						String title = research.getTitleRaw();
-						if (I18n.exists(title)) {
-							title = I18n.get(title);
-						}
-						iProbeInfo.text(I18n.get(ResearchTable.MODID + ".gui.researching", ChatFormatting.WHITE + title));
+						String title = 	research.getTitleRaw();
+						iProbeInfo.text(Component.translatable(ResearchTable.MODID + ".gui.researching", ChatFormatting.WHITE + title));
 						iProbeInfo.progress((int) (table.getProgress()), 100, new ProgressStyle().filledColor(0xFF00CC33).alternateFilledColor(0xFF00CC33).backgroundColor(0).suffix("%"));
 					}
 				}

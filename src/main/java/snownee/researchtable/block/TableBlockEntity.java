@@ -20,6 +20,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.GameProfileCache;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
@@ -428,6 +429,9 @@ public class TableBlockEntity extends BlockEntity implements MenuProvider {
 			return;
 		}
 		if (DataStorage.complete(ownerUUID, r) > 0) {
+			if (player instanceof ServerPlayer serverPlayer) {
+				DataStorage.syncClient(serverPlayer);
+			}
 			r.complete(level, getBlockPos(), player);
 			hasChanged = true;
 		}

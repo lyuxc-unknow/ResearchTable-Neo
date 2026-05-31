@@ -80,6 +80,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 	private TexturedButton submitButton;
 	private TexturedButton actionButton;
 	private int lastSeenResearchListVersion = -1;
+	private int lastSeenClientDataVersion = -1;
 
 	public TableScreen(TableContainer menu, Inventory inventory, Component title) {
 		super(menu, inventory, title);
@@ -117,6 +118,7 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 		super.init();
 
 		lastSeenResearchListVersion = ResearchList.clientVersion;
+		lastSeenClientDataVersion = DataStorage.clientVersion;
 		updateResearchList();
 
 		submitButton = addRenderableWidget(new TexturedButton(-200, -200, 80, 20,
@@ -267,6 +269,11 @@ public class TableScreen extends AbstractContainerScreen<TableContainer> {
 			}
 			updateResearchList();
 			buildScoreText();
+			refreshButtons();
+		}
+		if (DataStorage.clientVersion != lastSeenClientDataVersion) {
+			lastSeenClientDataVersion = DataStorage.clientVersion;
+			updateResearchList();
 			refreshButtons();
 		}
 		TableBlockEntity tile = menu.getTile();

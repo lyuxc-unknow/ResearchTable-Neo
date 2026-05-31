@@ -19,7 +19,7 @@ import snownee.researchtable.plugin.crafttweaker.ResearchBuilder;
  * ResearchBuilder} type when both CrT and AStages are present — keeping AStages an optional
  * dependency from the perspective of the core builder class.
  */
-@ZenRegister
+@ZenRegister(modDeps = {"astages"})
 @ZenCodeType.Expansion("mods.researchtable.ResearchBuilder")
 public class CrTAStagesExpansion {
 

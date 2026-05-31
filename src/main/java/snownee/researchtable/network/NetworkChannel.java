@@ -84,9 +84,7 @@ public final class NetworkChannel {
 	}
 
 	private static void handleSyncClient(PacketSyncClient packet, IPayloadContext ctx) {
-		ctx.enqueueWork(() -> {
-			DataStorage.clientData = packet.map();
-		});
+		ctx.enqueueWork(() -> DataStorage.handleClientSync(packet.map()));
 	}
 
 	private static void handleSyncResearchList(PacketSyncResearchList packet, IPayloadContext ctx) {

@@ -47,6 +47,7 @@ public class DataStorage {
 	private static final Map<String, Object2IntMap<String>> players = new HashMap<>();
 	private static boolean changed = false;
 	public static Object2IntMap<String> clientData;
+	public static int clientVersion;
 
 	public DataStorage(ServerLevel world) {
 		this.world = world;
@@ -293,13 +294,22 @@ public class DataStorage {
 
 	private static void syncClient(UUID uuid) {
 		Player player = getPlayer(uuid);
-		if (player == null) {
+		if (player instanceof ServerPlayer sp && !(player instanceof FakePlayer)) {
+			syncClient(sp);
+		}
+	}
+
+	public static void syncClient(ServerPlayer player) {
+		if (player instanceof FakePlayer) {
 			return;
 		}
-		if (player instanceof ServerPlayer sp && !(player instanceof FakePlayer)) {
-			Object2IntMap<String> data = getRecords(player.getGameProfile().getId());
-			PacketDistributor.sendToPlayer(sp, new PacketSyncClient(data));
-		}
+		Object2IntMap<String> data = getRecords(player.getGameProfile().getId());
+		PacketDistributor.sendToPlayer(player, new PacketSyncClient(data));
+	}
+
+	public static void handleClientSync(Object2IntMap<String> data) {
+		clientData = data;
+		++clientVersion;
 	}
 
 	public static Object2IntMap<String> readPlayerData(CompoundTag data) {
