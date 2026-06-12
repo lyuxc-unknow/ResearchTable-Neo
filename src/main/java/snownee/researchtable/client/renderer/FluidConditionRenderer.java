@@ -1,7 +1,8 @@
-package snownee.researchtable.plugin.crafttweaker;
+package snownee.researchtable.client.renderer;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -11,6 +12,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -18,19 +20,32 @@ import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.TooltipFlag;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.neoforged.neoforge.fluids.FluidStack;
-import snownee.researchtable.client.renderer.ConditionRenderer;
+import snownee.researchtable.ResearchTable;
+import snownee.researchtable.api.ICondition;
+import snownee.researchtable.core.ConditionDisplays;
+import snownee.researchtable.core.FluidDisplayCondition;
 
-public class RendererCrTLiquid extends ConditionRenderer<ConditionCrTLiquid> {
+public class FluidConditionRenderer<T extends ICondition<?> & FluidDisplayCondition> extends ConditionRenderer<T> {
 	private static final DecimalFormat COMMA = new DecimalFormat("#,###");
 
-	private final FluidStack fluid;
+	private final List<FluidStack> fluids;
 
-	public RendererCrTLiquid(ConditionCrTLiquid condition) {
-		this.fluid = condition.getFluid();
+	public FluidConditionRenderer(T condition) {
+		fluids = ConditionDisplays.copyFluids(condition.getDisplayFluids());
+	}
+
+	private FluidStack getFluid() {
+		if (fluids.isEmpty()) {
+			return FluidStack.EMPTY;
+		}
+		long ticks = Minecraft.getInstance().level != null ? Minecraft.getInstance().level.getGameTime() : 0;
+		int index = (int) ((ticks / 30) % fluids.size());
+		return fluids.get(index);
 	}
 
 	@Override
 	public void draw(GuiGraphics graphics, Minecraft mc, int x, int y) {
+		FluidStack fluid = getFluid();
 		if (fluid.isEmpty()) {
 			return;
 		}
@@ -49,7 +64,11 @@ public class RendererCrTLiquid extends ConditionRenderer<ConditionCrTLiquid> {
 
 	@Override
 	public String name() {
-		return fluid.getHoverName().getString();
+		FluidStack fluid = getFluid();
+		if (!fluid.isEmpty()) {
+			return fluid.getHoverName().getString();
+		}
+		return I18n.get(ResearchTable.MODID + ".gui.unknown_fluid");
 	}
 
 	@Override
@@ -60,13 +79,6 @@ public class RendererCrTLiquid extends ConditionRenderer<ConditionCrTLiquid> {
 		return COMMA.format(number) + "mB";
 	}
 
-	public static class Factory implements ConditionRendererFactory<ConditionCrTLiquid> {
-		@Override
-		public ConditionRenderer<ConditionCrTLiquid> get(ConditionCrTLiquid condition) {
-			return new RendererCrTLiquid(condition);
-		}
-	}
-
 	@Override
 	public Font getFont() {
 		return Minecraft.getInstance().font;
@@ -74,6 +86,10 @@ public class RendererCrTLiquid extends ConditionRenderer<ConditionCrTLiquid> {
 
 	@Override
 	public List<Component> getTooltip(TooltipFlag flag) {
+		FluidStack fluid = getFluid();
+		if (fluid.isEmpty()) {
+			return Collections.emptyList();
+		}
 		List<Component> tooltip = new ArrayList<>();
 		tooltip.add(fluid.getHoverName());
 		if (flag.isAdvanced()) {

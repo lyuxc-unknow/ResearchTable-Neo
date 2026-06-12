@@ -32,6 +32,7 @@
   "researchtable.gui.button.cancel": "Cancel",
   "researchtable.gui.button.shift": "Press Shift",
   "researchtable.gui.unknown_item": "Unknown Item",
+  "researchtable.gui.unknown_fluid": "Unknown Fluid",
 
   "commands.researchtable.usage": "/researchtable <Player> <Research> [count]",
   "commands.researchtable.researchNotFound": "Research not found.",

@@ -7,7 +7,6 @@ import com.blamejared.crafttweaker.api.item.IItemStack;
 
 import org.openzen.zencode.java.ZenCodeType;
 
-import snownee.researchtable.ResearchTable;
 import snownee.researchtable.core.ResearchCategory;
 import snownee.researchtable.core.ResearchList;
 
@@ -37,8 +36,6 @@ public class CrTPlugin {
 
 	@ZenCodeType.Method
 	public static void scoreIndicator(String formattingText, String... scores) {
-		ResearchList.ensureReloadApplied();
-		ResearchTable.scoreFormattingText = formattingText;
-		ResearchTable.scores = scores.clone();
+		ResearchList.setScoreIndicator(formattingText, scores);
 	}
 }

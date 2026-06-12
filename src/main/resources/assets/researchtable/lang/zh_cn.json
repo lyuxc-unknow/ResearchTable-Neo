@@ -7,6 +7,7 @@
   "researchtable.gui.weather.rain": "雨天",
   "researchtable.gui.weather.clear": "晴天",
   "researchtable.gui.unknown_item": "未知物品",
+  "researchtable.gui.unknown_fluid": "未知流体",
   "researchtable.gui.researching": "正在研究：%s",
   "researchtable.gui.researchNoFound": "未找到研究 %s。",
   "researchtable.gui.requiredStage": "需要阶段：%s",

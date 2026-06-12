@@ -33,7 +33,11 @@ import snownee.researchtable.plugin.crafttweaker.ConditionCrTItem;
 import snownee.researchtable.plugin.crafttweaker.ConditionCrTLiquid;
 import snownee.researchtable.plugin.forge.ConditionForgeEnergy;
 import snownee.researchtable.plugin.ftbteam.FTBTeamProvider;
+import snownee.researchtable.plugin.kubejs.ConditionKubeJSFluid;
+import snownee.researchtable.plugin.kubejs.ConditionKubeJSItem;
 import snownee.researchtable.plugin.minecraft.ConditionExperience;
+import snownee.researchtable.plugin.minecraft.ConditionFluid;
+import snownee.researchtable.plugin.minecraft.ConditionItem;
 import snownee.researchtable.plugin.minecraft.CriterionBiome;
 import snownee.researchtable.plugin.minecraft.CriterionDimension;
 import snownee.researchtable.plugin.minecraft.CriterionTime;
@@ -80,10 +84,15 @@ public class ResearchTable {
 		Objects.requireNonNull(CriterionDimension.TYPE);
 		Objects.requireNonNull(CriterionWeather.TYPE);
 		Objects.requireNonNull(CriterionTime.TYPE);
+		Objects.requireNonNull(ConditionItem.TYPE);
+		Objects.requireNonNull(ConditionFluid.TYPE);
 		Objects.requireNonNull(ConditionForgeEnergy.TYPE);
 		Objects.requireNonNull(ConditionExperience.TYPE);
 		if (ModList.get().isLoaded("crafttweaker")) {
 			touchCrTTypes();
+		}
+		if (ModList.get().isLoaded("kubejs")) {
+			touchKubeJSTypes();
 		}
 		if (ModList.get().isLoaded("astages")) {
 			touchAStagesTypes();
@@ -96,6 +105,11 @@ public class ResearchTable {
 	private static void touchCrTTypes() {
 		Objects.requireNonNull(ConditionCrTItem.TYPE);
 		Objects.requireNonNull(ConditionCrTLiquid.TYPE);
+	}
+
+	private static void touchKubeJSTypes() {
+		Objects.requireNonNull(ConditionKubeJSItem.TYPE);
+		Objects.requireNonNull(ConditionKubeJSFluid.TYPE);
 	}
 
 	private static void touchAStagesTypes() {

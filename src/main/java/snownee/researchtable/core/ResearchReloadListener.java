@@ -8,12 +8,15 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import snownee.researchtable.ResearchTable;
 import snownee.researchtable.network.PacketSyncResearchList;
+import snownee.researchtable.plugin.kubejs.KubeJSIntegration;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
@@ -24,13 +27,12 @@ public final class ResearchReloadListener {
 
 	@SubscribeEvent
 	public static void onAddReloadListener(AddReloadListenerEvent event) {
-		// Bumps the reload epoch in `prepare` (off-thread). All listeners' `prepare` complete before
-		// any `apply` runs, so the epoch is always bumped before CrT re-runs scripts in its `apply`,
-		// regardless of which listener was registered first.
+		// Build the pending datapack state in prepare. All script integrations append to that same
+		// pending state during apply, then we publish once before sync/server start.
 		event.addListener(new SimplePreparableReloadListener<Void>() {
 			@Override
 			protected Void prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
-				ResearchList.onReloadStarting();
+				ResearchList.beginReload(ResearchDataLoader.load(resourceManager));
 				return null;
 			}
 
@@ -41,7 +43,13 @@ public final class ResearchReloadListener {
 	}
 
 	@SubscribeEvent
+	public static void onServerStarted(ServerStartedEvent event) {
+		applyPendingScriptResearches();
+	}
+
+	@SubscribeEvent
 	public static void onDatapackSync(OnDatapackSyncEvent event) {
+		applyPendingScriptResearches();
 		// Fired both on player login (player != null) and after /reload (player == null, broadcast).
 		// Sending here covers dedicated-server clients that have no local scripts and would otherwise
 		// see an empty research list.
@@ -54,5 +62,15 @@ public final class ResearchReloadListener {
 				PacketDistributor.sendToPlayer(p, packet);
 			}
 		}
+	}
+
+	private static void applyPendingScriptResearches() {
+		if (!ResearchList.hasPendingReload()) {
+			return;
+		}
+		if (ModList.get().isLoaded("kubejs")) {
+			KubeJSIntegration.postAddResearchEvent();
+		}
+		ResearchList.finishReload();
 	}
 }

@@ -13,11 +13,13 @@ import com.blamejared.crafttweaker.api.item.IItemStack;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.world.item.ItemStack;
 import snownee.researchtable.ResearchTable;
+import snownee.researchtable.api.ICondition;
+import snownee.researchtable.core.ConditionDisplays;
 import snownee.researchtable.core.ConditionType;
 import snownee.researchtable.core.ConditionTypes;
-import snownee.researchtable.api.ICondition;
+import snownee.researchtable.core.ItemDisplayCondition;
 
-public class ConditionCrTItem implements ICondition<ItemStack> {
+public class ConditionCrTItem implements ICondition<ItemStack>, ItemDisplayCondition {
 
 	// Wire-only constructor (client) leaves ingredient null; matches() must never be called there.
 	@Nullable
@@ -40,7 +42,7 @@ public class ConditionCrTItem implements ICondition<ItemStack> {
 	private ConditionCrTItem(List<ItemStack> displayItems, long count, @Nullable String customName) {
 		this.ingredient = null;
 		this.count = Math.max(0, count);
-		this.displayItems = copyDisplayItems(displayItems);
+		this.displayItems = ConditionDisplays.copyItems(displayItems);
 		this.customName = customName;
 	}
 
@@ -60,13 +62,6 @@ public class ConditionCrTItem implements ICondition<ItemStack> {
 			}
 		}
 		return List.copyOf(out);
-	}
-
-	private static List<ItemStack> copyDisplayItems(List<ItemStack> items) {
-		return items.stream()
-				.filter(stack -> !stack.isEmpty())
-				.map(ItemStack::copy)
-				.toList();
 	}
 
 	@Override
@@ -95,10 +90,12 @@ public class ConditionCrTItem implements ICondition<ItemStack> {
 		return ConditionTypes.ITEM;
 	}
 
+	@Override
 	public List<ItemStack> getDisplayItems() {
-		return copyDisplayItems(displayItems);
+		return ConditionDisplays.copyItems(displayItems);
 	}
 
+	@Override
 	@Nullable
 	public String getCustomName() {
 		return customName;

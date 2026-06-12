@@ -2,6 +2,7 @@ package snownee.researchtable.core;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,11 +19,7 @@ public final class ResearchList {
 	public static final List<ResearchCategory> CATEGORIES = Lists.newArrayList();
 	public static final Map<String, Research> LIST = Maps.newLinkedHashMap();
 
-	// Bumped from the reload listener's `prepare` (off-thread, before any `apply`).
-	// Mutating CrT entrypoints compare against `lastAppliedEpoch` and clear state on first use of a
-	// new reload, so the bump is visible before CrT re-runs scripts regardless of listener order.
-	private static volatile int reloadEpoch = 0;
-	private static int lastAppliedEpoch = -1;
+	private static State pending;
 
 	// Bumped each time the snapshot is mutated wholesale (clear / applySnapshot). The open GUI
 	// polls this in containerTick to know when to drop a now-stale `selected` / `currentCategory`.
@@ -31,8 +28,26 @@ public final class ResearchList {
 	private ResearchList() {
 	}
 
-	public static void onReloadStarting() {
-		reloadEpoch++;
+	public static synchronized void beginReload(ResearchDataLoader.Result result) {
+		State state = new State();
+		for (Research research : result.researches()) {
+			add(state, research);
+		}
+		state.scoreFormattingText = result.scoreFormattingText();
+		state.scores = result.scores().length == 0 ? null : result.scores().clone();
+		pending = state;
+	}
+
+	public static synchronized boolean hasPendingReload() {
+		return pending != null;
+	}
+
+	public static synchronized void finishReload() {
+		if (pending == null) {
+			return;
+		}
+		applyState(pending);
+		pending = null;
 	}
 
 	private static void clearState() {
@@ -43,19 +58,23 @@ public final class ResearchList {
 	}
 
 	public static synchronized void clear() {
-		clearState();
-		lastAppliedEpoch = reloadEpoch;
-		clientVersion++;
-	}
-
-	public static synchronized void ensureReloadApplied() {
-		if (reloadEpoch != lastAppliedEpoch) {
-			clear();
+		if (pending != null) {
+			pending.clear();
+		} else {
+			clearState();
+			clientVersion++;
 		}
 	}
 
+	public static synchronized void ensureReloadApplied() {
+		// Kept for binary/source compatibility with integration entrypoints.
+		// Reload clearing is now centralized through the pending state created in prepare().
+	}
+
 	public static synchronized boolean add(Research research) {
-		ensureReloadApplied();
+		if (pending != null) {
+			return add(pending, research);
+		}
 		if (LIST.containsKey(research.getName())) {
 			return false;
 		}
@@ -67,7 +86,9 @@ public final class ResearchList {
 	}
 
 	public static synchronized boolean remove(String name) {
-		ensureReloadApplied();
+		if (pending != null) {
+			return pending.remove(name);
+		}
 		Research removed = LIST.remove(name);
 		if (removed == null) {
 			return false;
@@ -77,8 +98,22 @@ public final class ResearchList {
 		return true;
 	}
 
-	public static Optional<Research> find(String name) {
+	public static synchronized Optional<Research> find(String name) {
+		if (pending != null) {
+			return Optional.ofNullable(pending.list.get(name));
+		}
 		return Optional.ofNullable(ResearchList.LIST.get(name));
+	}
+
+	public static synchronized void setScoreIndicator(String formattingText, String... scores) {
+		if (pending != null) {
+			pending.scoreFormattingText = formattingText;
+			pending.scores = scores.clone();
+		} else {
+			ResearchTable.scoreFormattingText = formattingText;
+			ResearchTable.scores = scores.clone();
+			clientVersion++;
+		}
 	}
 
 	/**
@@ -87,6 +122,7 @@ public final class ResearchList {
 	 * left empty since the client never executes them.
 	 */
 	public static synchronized void applySnapshot(PacketSyncResearchList packet) {
+		pending = null;
 		clearState();
 
 		ResearchTable.scoreFormattingText = packet.scoreFormattingText;
@@ -121,9 +157,49 @@ public final class ResearchList {
 			LIST.put(research.getName(), research);
 		}
 
-		// Keep the epoch in sync so a stray server-side add() (e.g. in single-player after sync)
-		// doesn't think it's a new reload and wipe the snapshot we just applied.
-		lastAppliedEpoch = reloadEpoch;
 		clientVersion++;
+	}
+
+	private static boolean add(State state, Research research) {
+		if (state.list.containsKey(research.getName())) {
+			return false;
+		}
+		if (!state.categories.contains(research.getCategory())) {
+			state.categories.add(research.getCategory());
+		}
+		state.list.put(research.getName(), research);
+		return true;
+	}
+
+	private static void applyState(State state) {
+		clearState();
+		CATEGORIES.addAll(state.categories);
+		LIST.putAll(state.list);
+		ResearchTable.scoreFormattingText = state.scoreFormattingText;
+		ResearchTable.scores = state.scores == null || state.scores.length == 0 ? null : state.scores.clone();
+		clientVersion++;
+	}
+
+	private static final class State {
+		private final List<ResearchCategory> categories = new ArrayList<>();
+		private final Map<String, Research> list = new LinkedHashMap<>();
+		private String scoreFormattingText;
+		private String[] scores;
+
+		private void clear() {
+			categories.clear();
+			list.clear();
+			scoreFormattingText = null;
+			scores = null;
+		}
+
+		private boolean remove(String name) {
+			Research removed = list.remove(name);
+			if (removed == null) {
+				return false;
+			}
+			categories.removeIf(category -> list.values().stream().noneMatch(research -> research.getCategory() == category));
+			return true;
+		}
 	}
 }

@@ -54,7 +54,7 @@ public final class Registration {
 
 	public static void buildCreativeTabs(BuildCreativeModeTabContentsEvent event) {
 		if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
-			event.accept(TABLE_BLOCK.get());
+			event.accept(TABLE_ITEM.get());
 		}
 	}
 

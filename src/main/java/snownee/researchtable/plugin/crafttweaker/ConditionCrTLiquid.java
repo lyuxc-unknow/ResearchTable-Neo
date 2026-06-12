@@ -1,16 +1,19 @@
 package snownee.researchtable.plugin.crafttweaker;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 import com.blamejared.crafttweaker.api.fluid.IFluidStack;
 
 import net.neoforged.neoforge.fluids.FluidStack;
 import snownee.researchtable.ResearchTable;
+import snownee.researchtable.api.ICondition;
+import snownee.researchtable.core.ConditionDisplays;
 import snownee.researchtable.core.ConditionType;
 import snownee.researchtable.core.ConditionTypes;
-import snownee.researchtable.api.ICondition;
+import snownee.researchtable.core.FluidDisplayCondition;
 
-public class ConditionCrTLiquid implements ICondition<FluidStack> {
+public class ConditionCrTLiquid implements ICondition<FluidStack>, FluidDisplayCondition {
 	final FluidStack fluid;
 	final long count;
 
@@ -50,6 +53,11 @@ public class ConditionCrTLiquid implements ICondition<FluidStack> {
 
 	public FluidStack getFluid() {
 		return fluid.copy();
+	}
+
+	@Override
+	public List<FluidStack> getDisplayFluids() {
+		return ConditionDisplays.copyFluids(List.of(fluid));
 	}
 
 	public static final ConditionType<ConditionCrTLiquid> TYPE = ConditionType.register(

@@ -1,4 +1,4 @@
-package snownee.researchtable.plugin.crafttweaker;
+package snownee.researchtable.client.renderer;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -16,17 +16,19 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import snownee.researchtable.ResearchTable;
-import snownee.researchtable.client.renderer.ConditionRenderer;
+import snownee.researchtable.api.ICondition;
+import snownee.researchtable.core.ConditionDisplays;
+import snownee.researchtable.core.ItemDisplayCondition;
 
-public class RendererCrTItem extends ConditionRenderer<ConditionCrTItem> {
+public class ItemConditionRenderer<T extends ICondition<?> & ItemDisplayCondition> extends ConditionRenderer<T> {
 	private static final DecimalFormat COMMA = new DecimalFormat("#,###");
 
 	private final List<ItemStack> stacks;
 	@Nullable
 	private final String name;
 
-	public RendererCrTItem(ConditionCrTItem condition) {
-		stacks = new ArrayList<>(condition.getDisplayItems());
+	public ItemConditionRenderer(T condition) {
+		stacks = ConditionDisplays.copyItems(condition.getDisplayItems());
 		name = condition.getCustomName();
 	}
 
@@ -60,13 +62,6 @@ public class RendererCrTItem extends ConditionRenderer<ConditionCrTItem> {
 	@Override
 	public String format(long number) {
 		return COMMA.format(number);
-	}
-
-	public static class Factory implements ConditionRendererFactory<ConditionCrTItem> {
-		@Override
-		public ConditionRenderer<ConditionCrTItem> get(ConditionCrTItem condition) {
-			return new RendererCrTItem(condition);
-		}
 	}
 
 	@Override
